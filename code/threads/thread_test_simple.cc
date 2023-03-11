@@ -32,6 +32,15 @@ SimpleThread(void *name_)
     printf("!!! Thread `%s` has finished\n", name);
 }
 
+void
+GenerateThread(const char *threadName)
+{
+    char *name = new char [64];
+    strncpy(name, threadName, 64);
+    Thread *newThread = new Thread(name);
+    newThread->Fork(SimpleThread, (void *) name);
+}
+
 /// Set up a ping-pong between several threads.
 ///
 /// Do it by launching one thread which calls `SimpleThread`, and finally
@@ -39,10 +48,9 @@ SimpleThread(void *name_)
 void
 ThreadTestSimple()
 {
-    char *name = new char [64];
-    strncpy(name, "2nd", 64);
-    Thread *newThread = new Thread(name);
-    newThread->Fork(SimpleThread, (void *) name);
-
+    GenerateThread("5th");
+    GenerateThread("4th");
+    GenerateThread("3rd");
+    GenerateThread("2dn");
     SimpleThread((void *) "1st");
 }
