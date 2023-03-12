@@ -23,8 +23,8 @@ Turnstile(void *n_)
 
     for (unsigned i = 0; i < ITERATIONS_PER_TURNSTILE; i++) {
         int temp = count;
-        currentThread->Yield();
         count = temp + 1;
+        currentThread->Yield();
     }
     printf("Turnstile %u finished. Count is now %u.\n", *n, count);
     done[*n] = true;
