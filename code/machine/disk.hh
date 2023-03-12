@@ -58,6 +58,14 @@ const unsigned NUM_TRACKS = 32;         ///< Number of tracks per disk.
 const unsigned NUM_SECTORS = SECTORS_PER_TRACK * NUM_TRACKS;
   ///< Total # of sectors per disk.
 
+/// We put this at the front of the UNIX file representing the
+/// disk, to make it less likely we will accidentally treat a useful file
+/// as a disk (which would probably trash the file's contents).
+static const unsigned MAGIC_NUMBER = 0x456789AB;
+static const unsigned MAGIC_SIZE = sizeof (int);
+
+static const unsigned DISK_SIZE = MAGIC_SIZE + NUM_SECTORS * SECTOR_SIZE;
+
 class Disk {
 public:
     /// Create a simulated disk.
