@@ -1,7 +1,7 @@
 # Respuestas
 
 ## 1. ¿Por que se prefiere emular una CPU en vez de utilizar directamente la CPU existente?
-    Se decide emular un CPU ya que se usa una arquitectura mas simple de base, esta es la del microprocesador MIPS.
+    Se decide emular un CPU ya que se usa una arquitectura mas simple de base, esta es la del microprocesador MIPS. Con esto, logramos tener control de las características físicas del sistema sin tener que tocar el hardware subyacente. Además, facilita el aprendizaje de las tareas a realizar.
 ## 2. ¿Cuanta memoria tiene la maquina simulada para Nachos?
     4096 bytes
 ## 3. ¿Que modificarıa para cambiar la cantidad de memoria?
@@ -27,18 +27,65 @@
     - code/userland/sort.c
     - code/userland/tiny_shell.c
     - code/userland/touch.c
-    <!-- TODO second part -->
+
+    El archivo main del directorio userprog está definido en code/threads/main.cc. 
 ## 7. Nombre los archivos fuente en los que figuran las funciones y metodos llamados por el main de Nachos al ejecutarlo en el directorio threads (hasta dos niveles de profundidad). Por ejemplo: main llama a Initialize, que esta en tal archivo; e Initialize llama a ASSERT, que esta en tal otro archivo.
-    - Initialize: threads/system.cc
-    - DEBUG: code/lib/debug.cc
-    - SysInfo:
-    - PrintVersion:
-    - ThreadTest:
-    - Interrupt::Halt:
-    - ASSERT:
-    - StartProcess:
-    - ConsoleTest:
-    <!-- TODO Finish this nonesense -->
+    Main llama a:
+    - Initialize, que está en threads/system.cc y llama a:
+      - ASSERT, que está en lib/assert.hh
+      - strcmp, que está en string.h
+      - ParseDebugOpts, que está en threads/system.cc
+      - SystemDep::RandomInit, que está en machine/system_dep.cc
+      - atoi, que está en stdlib.h
+      - atof, que está en stdlib.h
+      - Debug::SetFlags, que está en lib/debug.cc
+      - Debug::SetOpts, que está en lib/debug.cc
+      - Interrupt::Interrupt, que está en machine/interrupt.cc
+      - Scheduler::Scheduler, que está en threads/scheduler.cc
+      - Timer::Timer, que está en machine/timer.cc
+      - Thread::Thread, que está en threads/thread.cc
+      - Thread::SetStatus, que está en threads/thread.cc
+      - Interrupt::Enable, que está en machine/interrupt.cc
+      - SystemDep::CallOnUserAbort, que está en machine/system_dep.cc
+      - PreemptiveScheduler, que está en threads/preemptive.hh
+      - PreemptiveScheduler::SetUp, que está en threads/preemptive.cc
+      - Debugger, que está en userprog/debugger.hh
+      - Machine::Machine, que está en machine/machine.cc
+      - SetExceptionHandlers, que está en userprog/exception.cc
+      - SynchDisk::SynchDisk, que está en filesys/synch_disk.cc
+      - FileSystem::FileSystem, que está en filesys/file_system.hh
+      - PostOffice::PostOffice, que está en network/post.cc
+
+    - DEBUG, que está en lib/utility.hh
+    - strcmp, que está en string.h
+    - SysInfo, que está en threads/sys_info.cc y llama a:
+      - print, que está en stdio.h
+    - PrintVersion, que está en threads/main.cc y llama a:
+      - print, que está en stdio.h
+    - ThreadTest, que está en threads/thread_test.cc y llama a:
+      - DEBUG, que está en lib/utility.hh
+      - Choose, que está en threads/thread_test.cc
+      - Run, que está en threads/thread_test.cc
+    - Interrupt::Halt, que está en machine/interrupt.cc y llama a:
+      - print, que está en stdio.h
+      - Statistics::Print, que está en machine/statistics.cc
+      - Cleanup, que está en threads/system.cc
+    - ASSERT, que está definido en lib/assert.hh
+    - StartProcess, que está definido en userprog/prog_test.cc y llama a:
+      - ASSERT, que está definido en lib/assert.hh
+      - Open, que está definido en filesys/file_system.hh
+      - print, que está en stdio.h
+      - AddressSpace::AddressSpace, que está en userprog/address_space.cc
+      - AddressSpace::InitRegisters, que está en userprog/address_space.cc
+      - AddressSpace::RestoreState, que está en userprog/address_space.cc
+      - Machine::Run(), que está en machine/mips_sim.cc
+      - ASSERT, que está definido en lib/assert.hh
+    - ConsoleTest, que está definido en userprog/prog_test.cc y llama a:
+      - Console::Console, que está en machine/console.cc
+      - Semaphore::Semaphore, que está en threads/semaphore.cc
+      - Semaphore::P, que está en threads/semaphore.cc
+      - Console::GetChar, que está en machine/console.cc
+      - Console::PutChar, que está en machine/console.cc
 ## 8. ¿Que efecto hacen las macros ASSERT y DEBUG definidas en lib/utility.hh?
     ASSERT: Su funcion es validar una condicion y abortar el programa si esta no se cumple. Se usan a lo largo del proyecto para explicitar invariantes
     DEBUG: Se usa para escribir al stderr informacion util a la hora de debuggear. Esta solo se escribe si la flag pasada como parametro se encuentra presente 
