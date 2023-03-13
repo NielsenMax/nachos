@@ -10,28 +10,28 @@
 /// All rights reserved.  See `copyright.h` for copyright notice and
 /// limitation of liability and disclaimer of warranty provisions.
 
-
 #include "thread_test_garden.hh"
 #include "thread_test_prod_cons.hh"
 #include "thread_test_simple.hh"
+#include "thread_test_garden_semaphore.hh"
 #include "lib/utility.hh"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-
-typedef struct {
-    void      (*func)();
+typedef struct
+{
+    void (*func)();
     const char *name;
     const char *description;
 } Test;
 
 static const Test TESTS[] = {
-    { &ThreadTestSimple,   "simple",   "Simple thread interleaving" },
-    { &ThreadTestGarden,   "garden",   "Ornamental garden" },
-    { &ThreadTestProdCons, "prodcons", "Producer/Consumer" }
-};
+    {&ThreadTestSimple, "simple", "Simple thread interleaving"},
+    {&ThreadTestGarden, "garden", "Ornamental garden"},
+    {&ThreadTestGardenSemaphore, "garden semaphore", "Ornamental garden with sempahores"},
+    {&ThreadTestProdCons, "prodcons", "Producer/Consumer"}};
 static const unsigned NUM_TESTS = sizeof TESTS / sizeof TESTS[0];
 
 static const unsigned NAME_MAX_LEN = 32;
@@ -44,31 +44,39 @@ Parse(char *choice, unsigned *index)
 
     // Remove trailing newline.
     unsigned len = strlen(choice);
-    if (choice[len - 1] == '\n') {
+    if (choice[len - 1] == '\n')
+    {
         choice[len - 1] = '\0';
     }
 
     // Skip empty lines.
-    if (choice[0] == '\0') {
+    if (choice[0] == '\0')
+    {
         return false;
     }
 
     // Try an integer representing a test index.
     char *end_p;
     unsigned n = strtoul(choice, &end_p, 10);
-    if (end_p[0] == '\0') {
-        if (n < NUM_TESTS) {
+    if (end_p[0] == '\0')
+    {
+        if (n < NUM_TESTS)
+        {
             *index = n;
             return true;
-        } else {
+        }
+        else
+        {
             return false;
         }
     }
 
     // Try a string naming a test.
-    for (unsigned i = 0; i < NUM_TESTS; i++) {
+    for (unsigned i = 0; i < NUM_TESTS; i++)
+    {
         const Test *t = &TESTS[i];
-        if (strcmp(choice, t->name) == 0) {
+        if (strcmp(choice, t->name) == 0)
+        {
             *index = i;
             return true;
         }
@@ -82,14 +90,16 @@ static unsigned
 Choose()
 {
     printf("Available tests:\n");
-    for (unsigned i = 0; i < NUM_TESTS; i++) {
+    for (unsigned i = 0; i < NUM_TESTS; i++)
+    {
         const Test *t = &TESTS[i];
         printf("(%u) %s: %s\n", i, t->name, t->description);
     }
 
     char choice[NAME_MAX_LEN];
     unsigned index;
-    do {
+    do
+    {
         printf("Choose a test to run: ");
         fflush(stdout);
         ASSERT(fgets(choice, sizeof choice, stdin) != nullptr);
@@ -110,8 +120,7 @@ Run(unsigned i)
     printf("\n");
 }
 
-void
-ThreadTest()
+void ThreadTest()
 {
     DEBUG('t', "Entering thread test\n");
 
