@@ -92,4 +92,6 @@ ThreadTestSimple()
     ThreadState* state = new ThreadState(name, sem);
 
     SimpleThread((void*)state);
+
+    printf("End of test.\n");
 }
