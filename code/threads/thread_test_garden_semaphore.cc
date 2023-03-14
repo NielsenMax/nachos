@@ -27,6 +27,7 @@ Turnstile(void *args)
     for (unsigned i = 0; i < ITERATIONS_PER_TURNSTILE; i++) {
         semaphore->P();
         int temp = count;
+        currentThread->Yield();
         count = temp + 1;
         semaphore->V();
     }
