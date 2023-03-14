@@ -20,13 +20,13 @@
 #include <stdio.h>
 
 
-/// We put this at the front of the UNIX file representing the
-/// disk, to make it less likely we will accidentally treat a useful file
-/// as a disk (which would probably trash the file's contents).
-static const unsigned MAGIC_NUMBER = 0x456789AB;
-static const unsigned MAGIC_SIZE = sizeof (int);
+// /// We put this at the front of the UNIX file representing the
+// /// disk, to make it less likely we will accidentally treat a useful file
+// /// as a disk (which would probably trash the file's contents).
+// static const unsigned MAGIC_NUMBER = 0x456789AB;
+// static const unsigned MAGIC_SIZE = sizeof (int);
 
-static const unsigned DISK_SIZE = MAGIC_SIZE + NUM_SECTORS * SECTOR_SIZE;
+// static const unsigned DISK_SIZE = MAGIC_SIZE + NUM_SECTORS * SECTOR_SIZE;
 
 /// dummy procedure because we cannot take a pointer of a member function
 static void

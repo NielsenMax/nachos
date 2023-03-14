@@ -22,7 +22,9 @@ sys_info.o: ../threads/sys_info.cc ../threads/sys_info.hh \
  ../filesys/file_system.hh ../filesys/open_file.hh ../lib/utility.hh \
  ../lib/assert.hh ../lib/debug.hh ../lib/debug_opts.hh \
  ../machine/system_dep.hh ../filesys/directory_entry.hh \
- ../machine/disk.hh ../filesys/raw_file_header.hh
+ ../machine/disk.hh ../filesys/raw_file_header.hh ../machine/mmu.hh \
+ ../machine/exception_type.hh ../machine/disk.hh \
+ ../machine/translation_entry.hh
 system.o: ../threads/system.cc ../threads/system.hh ../threads/thread.hh \
  ../lib/utility.hh ../lib/assert.hh ../lib/debug.hh ../lib/debug_opts.hh \
  ../machine/system_dep.hh ../threads/scheduler.hh ../lib/list.hh \
@@ -38,10 +40,18 @@ thread.o: ../threads/thread.cc ../threads/thread.hh ../lib/utility.hh \
  ../machine/timer.hh
 thread_test.o: ../threads/thread_test.cc ../threads/thread_test_garden.hh \
  ../threads/thread_test_prod_cons.hh ../threads/thread_test_simple.hh \
- ../lib/utility.hh ../lib/assert.hh ../lib/debug.hh ../lib/debug_opts.hh \
+ ../threads/thread_test_garden_semaphore.hh ../lib/utility.hh \
+ ../lib/assert.hh ../lib/debug.hh ../lib/debug_opts.hh \
  ../machine/system_dep.hh
 thread_test_garden.o: ../threads/thread_test_garden.cc \
  ../threads/thread_test_garden.hh ../threads/system.hh \
+ ../threads/thread.hh ../lib/utility.hh ../lib/assert.hh ../lib/debug.hh \
+ ../lib/debug_opts.hh ../machine/system_dep.hh ../threads/scheduler.hh \
+ ../lib/list.hh ../lib/utility.hh ../machine/interrupt.hh \
+ ../machine/statistics.hh ../machine/timer.hh
+thread_test_garden_semaphore.o: \
+ ../threads/thread_test_garden_semaphore.cc \
+ ../threads/thread_test_garden_semaphore.hh ../threads/system.hh \
  ../threads/thread.hh ../lib/utility.hh ../lib/assert.hh ../lib/debug.hh \
  ../lib/debug_opts.hh ../machine/system_dep.hh ../threads/scheduler.hh \
  ../lib/list.hh ../lib/utility.hh ../machine/interrupt.hh \
@@ -53,7 +63,7 @@ thread_test_simple.o: ../threads/thread_test_simple.cc \
  ../threads/thread.hh ../lib/utility.hh ../lib/assert.hh ../lib/debug.hh \
  ../lib/debug_opts.hh ../machine/system_dep.hh ../threads/scheduler.hh \
  ../lib/list.hh ../lib/utility.hh ../machine/interrupt.hh \
- ../machine/statistics.hh ../machine/timer.hh
+ ../machine/statistics.hh ../machine/timer.hh ../threads/semaphore.hh
 assert.o: ../lib/assert.cc ../lib/assert.hh
 debug.o: ../lib/debug.cc ../lib/debug.hh ../lib/debug_opts.hh \
  ../lib/utility.hh ../lib/assert.hh ../machine/system_dep.hh
@@ -105,6 +115,8 @@ thread.o: ../threads/thread.hh ../lib/utility.hh ../lib/assert.hh \
  ../lib/debug.hh ../lib/debug_opts.hh ../machine/system_dep.hh
 thread_test.o: ../threads/thread_test.hh
 thread_test_garden.o: ../threads/thread_test_garden.hh
+thread_test_garden_semaphore.o: \
+ ../threads/thread_test_garden_semaphore.hh
 thread_test_prod_cons.o: ../threads/thread_test_prod_cons.hh
 thread_test_simple.o: ../threads/thread_test_simple.hh
 assert.o: ../lib/assert.hh
