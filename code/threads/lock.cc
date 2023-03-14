@@ -16,15 +16,24 @@
 
 
 #include "lock.hh"
-
+#include <cstring>
+#include <stdio.h>
 
 /// Dummy functions -- so we can compile our later assignments.
 
 Lock::Lock(const char *debugName)
-{}
+{
+    name = debugName; 
+    semName = new char[strlen(debugName) + 15];
+    sprintf(semName, "LockSemaphore::%s", debugName);
+    semaphore = new Semaphore(semName, 1); 
+}
 
 Lock::~Lock()
-{}
+{
+    delete semaphore; 
+    delete semName; 
+}
 
 const char *
 Lock::GetName() const
@@ -35,18 +44,21 @@ Lock::GetName() const
 void
 Lock::Acquire()
 {
-    // TODO
+    ASSERT(!IsHeldByCurrentThread());
+    semaphore->P(); 
+    owner = currentThread;
 }
 
 void
 Lock::Release()
 {
-    // TODO
+    ASSERT(IsHeldByCurrentThread());
+    semaphore->V();
+    owner = NULL;
 }
 
 bool
 Lock::IsHeldByCurrentThread() const
 {
-    // TODO
-    return false;
+    return owner == currentThread;
 }
