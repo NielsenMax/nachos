@@ -24,7 +24,7 @@
 Lock::Lock(const char *debugName)
 {
     name = debugName; 
-    semName = new char[strlen(debugName) + 15];
+    semName = new char[strlen(debugName) + 16];
     sprintf(semName, "LockSemaphore::%s", debugName);
     semaphore = new Semaphore(semName, 1); 
 }
@@ -44,21 +44,23 @@ Lock::GetName() const
 void
 Lock::Acquire()
 {
+    DEBUG('t', "The owner is %p and the current is %p\n", owner, currentThread);
     ASSERT(!IsHeldByCurrentThread());
-    semaphore->P(); 
     owner = currentThread;
+    semaphore->P(); 
 }
 
 void
 Lock::Release()
 {
     ASSERT(IsHeldByCurrentThread());
-    semaphore->V();
     owner = NULL;
+    semaphore->V();
 }
 
 bool
 Lock::IsHeldByCurrentThread() const
 {
+    DEBUG('t', "FUNCTION: The owner is %p and the current is %p\n", owner, currentThread);
     return owner == currentThread;
 }

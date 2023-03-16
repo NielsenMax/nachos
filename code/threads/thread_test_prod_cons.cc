@@ -23,19 +23,19 @@ public:
     ~Buffer();
 
     void
-    Put(Item item);
+        Put(Item item);
 
     Item
-    Pop();
+        Pop();
 
 private:
-    Item *list;
+    Item* list;
     int count = 0;
     int maxItems = BUFFER_SIZE - 1;
 
-    Lock *listLock;
-    Condition *emptyList;
-    Condition *fullList;
+    Lock* listLock;
+    Condition* emptyList;
+    Condition* fullList;
 };
 
 template <class Item>
@@ -65,99 +65,112 @@ void Buffer<Item>::Put(Item item)
         fullList->Wait();
     }
 
-    list[count++] = item;
-
-    emptyList->Signal();
+    list[count] = item;
+count++;
     listLock->Release();
+    emptyList->Broadcast();
 }
 
 template <class Item>
 Item Buffer<Item>::Pop()
 {
     listLock->Acquire();
-
     while (count == 0)
     {
         emptyList->Wait();
     }
-    Item elem = list[count--];
-
-    fullList->Signal();
+    count--;
+    Item elem = list[count];
     listLock->Release();
-
+    fullList->Broadcast();
     return elem;
 }
 
-void ProducerThread(void *args)
+void ProducerThread(void* args)
 {
+    char* name = (char*)(((void**)args)[0]);
+    Buffer<int>* buffer = (Buffer<int> *)(((void**)args)[1]);
+    DEBUG('t', "Starting producer %s\n", name);
+
     while (true)
     {
-        char *name = (char *)(((void **)args)[0]);
-        Buffer<int> *buffer = (Buffer<int> *)(((void **)args)[1]);
-
-        buffer->Put(1);
         DEBUG('t', "Producer %s generate item\n", name);
+        buffer->Put(1);
+        // currentThread->Yield();
     }
 }
 
-void ConsumerThread(void *args)
+void ConsumerThread(void* args)
 {
+    char* name = (char*)(((void**)args)[0]);
+    Buffer<int>* buffer = (Buffer<int> *)(((void**)args)[1]);
+    DEBUG('t', "Starting consumer %s\n", name);
     while (true)
     {
-        char *name = (char *)(((void **)args)[0]);
-        Buffer<int> *buffer = (Buffer<int> *)(((void **)args)[1]);
 
         int item = buffer->Pop();
         DEBUG('t', "Consumer %s consume %i\n", name, item);
+        // currentThread->Yield();
+
     }
 }
 
-void GenerateProducerThread(const char *threadName, Buffer<int> *buff)
-{
-    void *args[2];
+// void GenerateProducerThread(const char* threadName, Buffer<int>* buff)
+// {
+//     void* args[2];
 
-    char *name = new char[strlen(threadName) + 20];
-    sprintf(name, "Producer::%s", threadName);
+//     char* name = new char[strlen(threadName) + 20];
+//     sprintf(name, "Producer::%s", threadName);
 
-    args[0] = name;
-    args[1] = buff;
+//     args[0] = name;
+//     args[1] = buff;
 
-    Thread *newThread = new Thread(name);
-    newThread->Fork(ProducerThread, (void *)args);
-}
+//     Thread* newThread = new Thread(name);
+//     newThread->Fork(ProducerThread, (void*)args);
+// }
 
-void GenerateConsumerThread(const char *threadName, Buffer<int> *buff)
-{
-    void *args[2];
+// void GenerateConsumerThread(const char* threadName, Buffer<int>* buff)
+// {
+//     void* args[2];
 
-    char *name = new char[strlen(threadName) + 20];
-    sprintf(name, "Producer::%s", threadName);
+//     char* name = new char[strlen(threadName) + 20];
+//     sprintf(name, "Producer::%s", threadName);
 
-    args[0] = name;
-    args[1] = buff;
+//     args[0] = name;
+//     args[1] = buff;
 
-    Thread *newThread = new Thread(name);
-    newThread->Fork(ProducerThread, args);
-}
+//     Thread* newThread = new Thread(name);
+//     newThread->Fork(ProducerThread, args);
+// }
 
 void ThreadTestProdCons()
 {
     Buffer<int>* buff = new Buffer<int>();
 
+    void* args[NUM_PRODUCERS + NUM_CONSUMERS][2];
     for (unsigned i = 0; i < NUM_PRODUCERS; i++)
     {
-        char *name = new char[64];
-        snprintf(name, 64, "%i", i + 1);
+        char* name = new char[64];
+        sprintf(name, "Producer::%i", i + 1);
 
-        GenerateProducerThread(name, buff);
+        args[i][0] = name;
+        args[i][1] = buff;
+
+        Thread* newThread = new Thread(name);
+        newThread->Fork(ProducerThread, (void*)args[i]);
     };
 
     for (unsigned i = 0; i < NUM_CONSUMERS; i++)
     {
-        char *name = new char[64];
-        snprintf(name, 64, "%i", i + 1);
+        char* name = new char[64];
+        sprintf(name, "Consumer::%i", i + 1);
+        int index = i + NUM_PRODUCERS;
 
-        GenerateConsumerThread(name, buff);
+        args[index][0] = name;
+        args[index][1] = buff;
+
+        Thread* newThread = new Thread(name);
+        newThread->Fork(ConsumerThread, (void*)args[index]);
     };
 
     while (true)

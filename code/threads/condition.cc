@@ -27,13 +27,13 @@
 Condition::Condition(const char *debugName, Lock *conditionLock_)
 {
     name = debugName;
-    semName = new char[strlen(debugName) + 20];
+    semName = new char[strlen(debugName) + 21];
     sprintf(semName, "ConditionSemaphore::%s", debugName);
     signal = new Semaphore(semName, 0); 
 
     conditionLock = conditionLock_;
 
-    lockName = new char[strlen(debugName) + 15];
+    lockName = new char[strlen(debugName) + 16];
     sprintf(lockName, "ConditionLock::%s", debugName);
     waitingLock = new Lock(lockName); 
 }
@@ -62,7 +62,7 @@ Condition::Wait()
     waitingLock->Release();
 
     conditionLock->Release();
-    signal->V();
+    signal->P();
     conditionLock->Acquire();
 }
 
@@ -72,7 +72,7 @@ Condition::Signal()
     waitingLock->Acquire();
     if(waiting > 0) {
         waiting--;
-        signal->P();
+        signal->V();
     }
     waitingLock->Release();
 }
@@ -82,7 +82,7 @@ Condition::Broadcast()
 {
     waitingLock->Acquire();
     for(;waiting > 0;waiting--) {
-        signal->P();
+        signal->V();
     }
     waitingLock->Release();
 }
