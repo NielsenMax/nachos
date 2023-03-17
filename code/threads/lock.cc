@@ -44,15 +44,16 @@ Lock::GetName() const
 void
 Lock::Acquire()
 {
-    DEBUG('t', "The owner is %p and the current is %p\n", owner, currentThread);
+    DEBUG('t', "ACQUIRING %s: The owner is %p and the current is %p\n", GetName(), owner, currentThread);
     ASSERT(!IsHeldByCurrentThread());
+    semaphore->P();
     owner = currentThread;
-    semaphore->P(); 
 }
 
 void
 Lock::Release()
 {
+    DEBUG('t', "RELEASING %s: The owner is %p and the current is %p\n", GetName(), owner, currentThread);
     ASSERT(IsHeldByCurrentThread());
     owner = NULL;
     semaphore->V();
@@ -61,6 +62,6 @@ Lock::Release()
 bool
 Lock::IsHeldByCurrentThread() const
 {
-    DEBUG('t', "FUNCTION: The owner is %p and the current is %p\n", owner, currentThread);
+    DEBUG('t', "FUNCTION: The owner %p is current thread %p? %d\n", owner, currentThread, owner == currentThread);
     return owner == currentThread;
 }
