@@ -31,11 +31,13 @@ public:
 private:
     Item* list;
     int count = 0;
+    int nextin = 0;
+    int nextout = 0;
     int maxItems = BUFFER_SIZE - 1;
 
     Lock* listLock;
-    Condition* emptyList;
-    Condition* fullList;
+    Condition* canPush;
+    Condition* canPop;
 };
 
 template <class Item>
@@ -43,8 +45,8 @@ Buffer<Item>::Buffer()
 {
     list = new Item[BUFFER_SIZE];
     listLock = new Lock("Buffer");
-    emptyList = new Condition("Buffer::emptyList", listLock);
-    fullList = new Condition("Buffer::fullList", listLock);
+    canPush = new Condition("Buffer::canPush", listLock);
+    canPop = new Condition("Buffer::canPop", listLock);
 }
 
 template <class Item>
@@ -52,7 +54,7 @@ Buffer<Item>::~Buffer()
 {
     delete[] list;
     delete listLock;
-    delete emptyList;
+    delete canPush;
 }
 
 template <class Item>
@@ -62,13 +64,20 @@ void Buffer<Item>::Put(Item item)
 
     while (count == maxItems)
     {
-        fullList->Wait();
+        DEBUG('b', "Waiting to pop.\n");
+        canPop->Wait();
     }
 
-    list[count] = item;
-count++;
+    ASSERT(count < maxItems);
+    DEBUG('b', "Setting item %d to list.\n", item);
+    list[nextin++] = item;
+
+    nextin %= BUFFER_SIZE;
+    count++;
+
+    DEBUG('b', "PUT: Now buffer has %d items.\n", count);
     listLock->Release();
-    emptyList->Broadcast();
+    canPush->Broadcast();
 }
 
 template <class Item>
@@ -77,12 +86,17 @@ Item Buffer<Item>::Pop()
     listLock->Acquire();
     while (count == 0)
     {
-        emptyList->Wait();
+        DEBUG('b', "Waiting to push.\n");
+        canPush->Wait();
     }
+    Item elem = list[nextout++];
+    DEBUG('b', "Popping item %d from list.\n", elem);
+
+    nextout %= BUFFER_SIZE;
     count--;
-    Item elem = list[count];
+    DEBUG('b', "POP: Now buffer has %d items.\n", count);
     listLock->Release();
-    fullList->Broadcast();
+    canPop->Broadcast();
     return elem;
 }
 
@@ -96,7 +110,6 @@ void ProducerThread(void* args)
     {
         DEBUG('t', "Producer %s generate item\n", name);
         buffer->Put(1);
-        // currentThread->Yield();
     }
 }
 
@@ -110,38 +123,9 @@ void ConsumerThread(void* args)
 
         int item = buffer->Pop();
         DEBUG('t', "Consumer %s consume %i\n", name, item);
-        // currentThread->Yield();
 
     }
 }
-
-// void GenerateProducerThread(const char* threadName, Buffer<int>* buff)
-// {
-//     void* args[2];
-
-//     char* name = new char[strlen(threadName) + 20];
-//     sprintf(name, "Producer::%s", threadName);
-
-//     args[0] = name;
-//     args[1] = buff;
-
-//     Thread* newThread = new Thread(name);
-//     newThread->Fork(ProducerThread, (void*)args);
-// }
-
-// void GenerateConsumerThread(const char* threadName, Buffer<int>* buff)
-// {
-//     void* args[2];
-
-//     char* name = new char[strlen(threadName) + 20];
-//     sprintf(name, "Producer::%s", threadName);
-
-//     args[0] = name;
-//     args[1] = buff;
-
-//     Thread* newThread = new Thread(name);
-//     newThread->Fork(ProducerThread, args);
-// }
 
 void ThreadTestProdCons()
 {
