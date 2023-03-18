@@ -2,12 +2,8 @@
 #define NACHOS_THREADS_CHANNEL__HH
 
 #include "lock.hh"
+#include "condition.hh"
 #include "synch_list.hh"
-#include <tuple>
-
-enum Kind { receivers, senders };
-
-typedef std::tuple<int, Semaphore*> ChannelItem;
 
 class Channel {
 public:
@@ -19,11 +15,15 @@ public:
 
 private:
     char* lockName;
+    char* conditionNameEmptyBuffer;
+    char* conditionNameFullBuffer;
+    char* conditionNameCommunicationAck;
     Lock* lock;
 
-    Kind kindOfWaiters;
-    int waiters = 0;
-    SynchList<ChannelItem*>* list;
+    Condition* emptyBuffer;
+    Condition* fullBuffer;
+    Condition* communicationAck;
+    int* buffer;
 };
 
 #endif

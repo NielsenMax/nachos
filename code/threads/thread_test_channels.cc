@@ -9,6 +9,7 @@
 #include "channel.hh"
 #include <stdio.h>
 #include <cstring>
+#include <cstdlib>
 
 static const unsigned NUM_RECEIVERS = 2;
 static const unsigned NUM_SENDERS = 5;
@@ -18,12 +19,13 @@ void SenderThread(void *args)
     char *name = (char *)(((void **)args)[0]);
     Channel *chan = (Channel *)(((void **)args)[1]);
 
-    DEBUG('t', "Starting sender %s\n", name);
+    DEBUG('b', "Starting sender %s\n", name);
 
     while (true)
     {
-        DEBUG('t', "Sender %s send item\n", name);
-        chan->Send(2);
+        int item = rand();
+        DEBUG('b', "Sender %s send %d\n", name, item);
+        chan->Send(item);
         // currentThread->Yield();
     }
 }
@@ -33,12 +35,12 @@ void ReceiverThread(void *args)
     char *name = (char *)(((void **)args)[0]);
     Channel *chan = (Channel *)(((void **)args)[1]);
 
-    DEBUG('t', "Starting receiver %s\n", name);
+    DEBUG('b', "Starting receiver %s\n", name);
     while (true)
     {
         int item;
         chan->Receive(&item);
-        DEBUG('t', "Receiver %s receive %i\n", name, item);
+        DEBUG('b', "Receiver %s receive %i\n", name, item);
         // currentThread->Yield();
     }
 }
