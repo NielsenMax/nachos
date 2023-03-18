@@ -9,64 +9,60 @@ Channel::Channel(const char* debugName) {
     sprintf(lockName, "ChannelLock::%s", debugName);
     lock = new Lock(lockName);
 
-    list = new SynchList<ChannelItem*>();
+    conditionNameEmptyBuffer = new char[strlen(debugName) + 16];
+    sprintf(conditionNameEmptyBuffer, "ConditionEmpty::%s", debugName);
+    emptyBuffer = new Condition(conditionNameEmptyBuffer, lock);
+
+    conditionNameFullBuffer = new char[strlen(debugName) + 15];
+    sprintf(conditionNameFullBuffer, "ConditionFull::%s", debugName);
+    fullBuffer = new Condition(conditionNameFullBuffer, lock);
+
+    conditionNameCommunicationAck = new char[strlen(debugName) + 14];
+    sprintf(conditionNameCommunicationAck, "ConditionAck::%s", debugName);
+    communicationAck = new Condition(conditionNameCommunicationAck, lock);
+
+    buffer = NULL;
 }
 
 Channel::~Channel() {
     delete lock;
+    delete conditionNameCommunicationAck;
+    delete conditionNameEmptyBuffer;
+    delete conditionNameFullBuffer;
+    delete communicationAck;
+    delete fullBuffer;
+    delete emptyBuffer;
     delete lockName;
-    delete list;
 }
 
 
 void
-Channel::Send(int number) {
+Channel::Send(int msg) {
     lock->Acquire();
-    if (waiters > 0 && kindOfWaiters == receivers) {
-        ChannelItem* tuple = list->Pop();
-        std::get<0>(*tuple) = number;
-        std::get<1>(*tuple)->V();
-        lock->Release();
-        return;
-    }
-    kindOfWaiters = senders;
-    waiters++;
-    ChannelItem* tuple = new ChannelItem();
-    std::get<0>(*tuple) = number;
-    Semaphore* sem = new Semaphore("senderSemaphore", 0);
-    std::get<1>(*tuple) = sem;
-    list->Append(tuple);
+
+    while(buffer != nullptr) {
+        emptyBuffer->Wait();
+    } 
+
+    buffer = &msg;
+    fullBuffer->Signal();
+    communicationAck->Wait();
+    emptyBuffer->Signal();
+
     lock->Release();
-    sem->P();
-    lock->Acquire();
-    waiters--;
-    lock->Release();
-    delete sem;
-    delete tuple;
 }
 
 void
-Channel::Receive(int* number) {
+Channel::Receive(int* buf) {
     lock->Acquire();
-    if (waiters > 0 && kindOfWaiters == senders) {
-        ChannelItem* tuple = list->Pop();
-        *number = std::get<0>(*tuple);
-        std::get<1>(*tuple)->V();
-        lock->Release();
-        return;
+
+    while (buffer == nullptr)
+    {
+        fullBuffer->Wait();
     }
-    kindOfWaiters = receivers;
-    waiters++;
-    ChannelItem* tuple = new ChannelItem();
-    Semaphore* sem = new Semaphore("recieverSemaphore", 0);
-    std::get<1>(*tuple) = sem;
-    list->Append(tuple);
+    *buf = *buffer;
+    buffer = nullptr;
+    communicationAck->Signal();
+
     lock->Release();
-    sem->P();
-    lock->Acquire();
-    waiters--;
-    *number = std::get<0>(*tuple);
-    lock->Release();
-    delete sem;
-    delete tuple;
 }
