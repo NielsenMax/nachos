@@ -64,14 +64,16 @@ SimpleThread(void* args)
 
 }
 
-void
+Thread*
 GenerateThread(const char* threadName, Semaphore* sem)
 {
     char* name = new char[64];
     strncpy(name, threadName, 64);
     Thread* newThread = new Thread(name);
     ThreadState* state = new ThreadState(name, sem);
-    newThread->Fork(SimpleThread, (void*)state);
+    newThread->Fork(SimpleThread, (void*)state);  
+
+    return newThread; 
 }
 
 /// Set up a ping-pong between several threads.
@@ -82,16 +84,18 @@ void
 ThreadTestSimple()
 {
     Semaphore* sem = new Semaphore("semaphore_simple_test", 3);
-    GenerateThread("2dn", sem);
-    GenerateThread("3rd", sem);
-    GenerateThread("4th", sem);
-    GenerateThread("5th", sem);
+    Thread* fst = GenerateThread("2dn", sem);
+    Thread* snd = GenerateThread("3rd", sem);
+    Thread* thd = GenerateThread("4th", sem);
+    Thread* fht = GenerateThread("5th", sem);
 
     char* name = new char[64];
     strncpy(name, "1st", 64);
     ThreadState* state = new ThreadState(name, sem);
 
     SimpleThread((void*)state);
-
-    printf("End of test.\n");
+    fst->Join();
+    snd->Join();
+    thd->Join();
+    fht->Join();
 }

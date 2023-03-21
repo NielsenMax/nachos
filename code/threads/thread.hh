@@ -48,6 +48,8 @@
 
 #include <stdint.h>
 
+class Channel;
+
 
 /// CPU register state to be saved on context switch.
 ///
@@ -94,10 +96,12 @@ private:
     /// All registers except for `stackTop`.
     uintptr_t machineState[MACHINE_STATE_SIZE];
 
+    Channel *channel;
+
 public:
 
     /// Initialize a `Thread`.
-    Thread(const char *debugName);
+    Thread(const char *debugName, bool joinable = true);
 
     /// Deallocate a Thread.
     ///
@@ -115,6 +119,8 @@ public:
 
     /// Put the thread to sleep and relinquish the processor.
     void Sleep();
+
+    int Join();
 
     /// The thread is done executing.
     void Finish();
@@ -140,6 +146,8 @@ private:
     ThreadStatus status;
 
     const char *name;
+
+    bool joinable;
 
     /// Allocate a stack for thread.  Used internally by `Fork`.
     void StackAllocate(VoidFunctionPtr func, void *arg);
