@@ -14,7 +14,6 @@
 /// All rights reserved.  See `copyright.h` for copyright notice and
 /// limitation of liability and disclaimer of warranty provisions.
 
-
 #include "lock.hh"
 #include <cstring>
 #include <stdio.h>
@@ -23,18 +22,16 @@
 
 Lock::Lock(const char *debugName)
 {
-    name = debugName; 
+    name = debugName;
     semName = new char[strlen(debugName) + 16];
     sprintf(semName, "LockSemaphore::%s", debugName);
-    semaphore = new Semaphore(semName, 1); 
-
-    owner = nullptr;
+    semaphore = new Semaphore(semName, 1);
 }
 
 Lock::~Lock()
 {
-    delete semaphore; 
-    delete semName; 
+    delete semaphore;
+    delete semName;
 }
 
 const char *
@@ -43,26 +40,36 @@ Lock::GetName() const
     return name;
 }
 
-void
-Lock::Acquire()
+void Lock::Acquire()
 {
     DEBUG('t', "ACQUIRING %s: The owner is %p and the current is %p\n", GetName(), owner, currentThread);
     ASSERT(!IsHeldByCurrentThread());
+
+#ifdef LOCK_INVERSION_PRIORITY_SAFE
+    int priority = currentThread->GetPriority();
+    if (owner != nullptr && owner->GetPriority() < priority)
+    {
+        owner->SetPriority(priority);
+    }
+#endif
+
     semaphore->P();
     owner = currentThread;
 }
 
-void
-Lock::Release()
+void Lock::Release()
 {
     DEBUG('t', "RELEASING %s: The owner is %p and the current is %p\n", GetName(), owner, currentThread);
     ASSERT(IsHeldByCurrentThread());
     owner = nullptr;
     semaphore->V();
+
+#ifdef LOCK_INVERSION_PRIORITY_SAFE
+    currentThread->ResetPriority();
+#endif
 }
 
-bool
-Lock::IsHeldByCurrentThread() const
+bool Lock::IsHeldByCurrentThread() const
 {
     DEBUG('t', "FUNCTION: The owner %p is current thread %p? %d\n", owner, currentThread, owner == currentThread);
     return owner == currentThread;

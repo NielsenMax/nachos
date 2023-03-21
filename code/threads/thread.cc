@@ -38,10 +38,14 @@ IsThreadStatus(ThreadStatus s)
 /// `Thread::Fork`.
 ///
 /// * `threadName` is an arbitrary string, useful for debugging.
-Thread::Thread(const char *threadName, bool joinable_)
+Thread::Thread(const char *threadName, bool joinable_, int priority_)
 {
+    ASSERT(priority_ <= MAX_PRIORITY && priority_ >= 0);
+
     name = threadName;
     joinable = joinable_;
+    priority = priority_;
+    realPriority = priority;
     stackTop = nullptr;
     stack = nullptr;
     status = JUST_CREATED;
@@ -73,6 +77,7 @@ Thread::~Thread()
     }
 }
 
+<<<<<<< HEAD
 int Thread::Join()
 {
     ASSERT(joinable);
@@ -81,6 +86,21 @@ int Thread::Join()
     channel->Receive(&result);
 
     return result;
+=======
+int Thread::GetPriority()
+{
+    return priority;
+}
+
+void Thread::SetPriority(int newPriority) {
+    ASSERT(newPriority <= MAX_PRIORITY && newPriority >= 0);
+
+    priority = newPriority;
+}
+
+void Thread::ResetPriority() {
+    SetPriority(realPriority);
+>>>>>>> WIP
 }
 
 /// Invoke `(*func)(arg)`, allowing caller and callee to execute
