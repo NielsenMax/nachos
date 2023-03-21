@@ -4,7 +4,7 @@
 /// All rights reserved.  See `copyright.h` for copyright notice and
 /// limitation of liability and disclaimer of warranty provisions.
 
-#include "thread_test_simple.hh"
+#include "thread_test_priority_inversion.hh"
 #include "system.hh"
 
 #include "lock.hh"
@@ -12,71 +12,57 @@
 #include <stdio.h>
 #include <string.h>
 
-class ThreadState
+Lock *lock;
+
+void High(void *args)
 {
-public:
-    ThreadState(char *name_, Lock *lock_)
-    {
-        name = name_;
-        lock = lock_;
-    };
-    ~ThreadState()
-    {
-        delete name;
-        delete lock;
-    };
-    char *GetName() { return name; };
-    Semaphore *GetLock() { return lock; };
-
-private:
-    char *name;
-    Semaphore *semaphore;
-};
-
-void SimpleThread(void *args)
-{
-    char *name = (char *)(((void **)args)[0]);
-    Lock *lock = (Lock *)(((void **)args)[1]);
-
-    DEBUG('b', "Thread %s is aquiring lock", name);
     lock->Acquire();
+    lock->Release();
+
+    printf("High priority task done.\n");
+}
+
+void Med(void *args)
+{
+    printf("Medium priority infinite loop...\n");
+    while (1)
+        currentThread->Yield();
+}
+
+void Low(void *args)
+{
+    lock->Acquire();
+    currentThread->Yield();
+    lock->Release();
+
+    printf("Low priority task done.\n");
 }
 
 Thread *
-GenerateThread(const char *threadName, Semaphore *sem, int priority = 0)
+GenerateThread(const char *threadName, int priority)
 {
     char *name = new char[64];
     strncpy(name, threadName, 64);
-    Thread *newThread = new Thread(name, true, priority);
-    newThread->Fork(SimpleThread, (void *)state);
+    Thread *newThread = new Thread(name, false, priority);
 
     return newThread;
 }
 
-/// Set up a ping-pong between several threads.
+/// Set up the priority inversion problem.
 ///
-/// Do it by launching one thread which calls `SimpleThread`, and finally
-/// calling `SimpleThread` on the current thread.
-
-void
-ThreadTestPriorityInversion()
+///
+void ThreadTestPriorityInversion()
 {
-    Lock* lock = new Lock("ThreadTestPriorityInversion::Lock");
-    void *args[NUM_TURNSTILES][3];
-    Thread *threads[NUM_TURNSTILES];
+    lock = new Lock("Lock");
 
-    // Launch a new thread for each turnstile.
-    char *name = new char[64];
-    strncpy(name, threadName, 64);
-    Thread *newThread = new Thread(name, true, priority);
-    newThread->Fork(SimpleThread, (void *)state);
+    Thread *high = GenerateThread("High", MAX_PRIORITY);
+    Thread *mid1 = GenerateThread("Mid1", 3);
+    Thread *mid2 = GenerateThread("Mid2", 3);
+    Thread *low = GenerateThread("Low", 0);
 
-    // Wait until all turnstile threads finish their work.  `Thread::Join` is
-    // not implemented at the beginning, therefore an ad-hoc workaround is
-    // applied here.
-    for (unsigned i = 0; i < NUM_TURNSTILES; i++) {
-        threads[i]->Join();
-    }
-    printf("All turnstiles finished. Final count is %u (should be %u).\n",
-           count, ITERATIONS_PER_TURNSTILE * NUM_TURNSTILES);
+    low->Fork(Low, nullptr);
+    currentThread->Yield();
+    mid1->Fork(Med, nullptr);
+    mid2->Fork(Med, nullptr);
+    high->Fork(High, nullptr);
 }
