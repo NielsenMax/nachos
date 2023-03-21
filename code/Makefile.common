@@ -48,6 +48,7 @@ THREAD_HDR = threads/condition.hh             \
              threads/thread_test_garden.hh    \
              threads/thread_test_garden_semaphore.hh    \
              threads/thread_test_channels.hh  \
+             threads/thread_test_priority_inversion.hh \
              threads/thread_test_prod_cons.hh \
              threads/thread_test_simple.hh    \
              lib/assert.hh                    \
@@ -74,6 +75,7 @@ THREAD_SRC = threads/main.cc                  \
              threads/thread_test_garden.cc    \
              threads/thread_test_garden_semaphore.cc    \
              threads/thread_test_channels.cc  \
+             threads/thread_test_priority_inversion.cc  \
              threads/thread_test_prod_cons.cc \
              threads/thread_test_simple.cc    \
              lib/assert.cc                    \

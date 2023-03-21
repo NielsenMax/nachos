@@ -15,6 +15,7 @@
 #include "thread_test_simple.hh"
 #include "thread_test_garden_semaphore.hh"
 #include "thread_test_channels.hh"
+#include "thread_test_priority_inversion.hh"
 #include "lib/utility.hh"
 
 #include <stdio.h>
@@ -33,7 +34,8 @@ static const Test TESTS[] = {
     {&ThreadTestGarden, "garden", "Ornamental garden"},
     {&ThreadTestGardenSemaphore, "garden semaphore", "Ornamental garden with sempahores"},
     {&ThreadTestChannels, "channels", "Test for channels"},
-    {&ThreadTestProdCons, "prodcons", "Producer/Consumer"}};
+    {&ThreadTestProdCons, "prodcons", "Producer/Consumer"},
+    {&ThreadTestPriorityInversion, "inversion", "Priority inversion problem"}};
 static const unsigned NUM_TESTS = sizeof TESTS / sizeof TESTS[0];
 
 static const unsigned NAME_MAX_LEN = 32;
