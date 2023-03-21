@@ -92,13 +92,15 @@ int Thread::GetPriority()
     return priority;
 }
 
-void Thread::SetPriority(int newPriority) {
+void Thread::SetPriority(int newPriority)
+{
     ASSERT(newPriority <= MAX_PRIORITY && newPriority >= 0);
 
     priority = newPriority;
 }
 
-void Thread::ResetPriority() {
+void Thread::ResetPriority()
+{
     SetPriority(realPriority);
 >>>>>>> WIP
 }
@@ -221,6 +223,8 @@ void Thread::Yield()
     Thread *nextThread = scheduler->FindNextToRun();
     if (nextThread != nullptr)
     {
+        DEBUG('b', "Next thread is %s with priority %d\n",
+              nextThread->GetName(), nextThread->GetPriority());
         scheduler->ReadyToRun(this);
         scheduler->Run(nextThread);
     }
