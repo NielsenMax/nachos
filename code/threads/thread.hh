@@ -50,6 +50,7 @@
 
 class Channel;
 
+const int MAX_PRIORITY = 1000;
 
 /// CPU register state to be saved on context switch.
 ///
@@ -98,10 +99,13 @@ private:
 
     Channel *channel;
 
+    int priority;
+    int realPriority;
+
 public:
 
     /// Initialize a `Thread`.
-    Thread(const char *debugName, bool joinable = true);
+    Thread(const char *debugName, bool joinable = true, int priority = 0);
 
     /// Deallocate a Thread.
     ///
@@ -133,6 +137,10 @@ public:
     const char *GetName() const;
 
     void Print() const;
+
+    int GetPriority();
+    void SetPriority(int priority);
+    void ResetPriority();
 
 private:
     // Some of the private data for this class is listed above.
