@@ -49,7 +49,9 @@ void Lock::Acquire()
     int priority = currentThread->GetPriority();
     if (owner != nullptr && owner->GetPriority() < priority)
     {
+        DEBUG('b', "The owner %s has lower priority than the current thread %s.\n", owner->GetName(), currentThread->GetName());
         owner->SetPriority(priority);
+        scheduler->SwitchPriority(owner);
     }
 #endif
 
@@ -61,12 +63,11 @@ void Lock::Release()
 {
     DEBUG('t', "RELEASING %s: The owner is %p and the current is %p\n", GetName(), owner, currentThread);
     ASSERT(IsHeldByCurrentThread());
-    owner = nullptr;
-    semaphore->V();
-
 #ifdef LOCK_INVERSION_PRIORITY_SAFE
     currentThread->ResetPriority();
 #endif
+    owner = nullptr;
+    semaphore->V();
 }
 
 bool Lock::IsHeldByCurrentThread() const

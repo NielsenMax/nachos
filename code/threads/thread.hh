@@ -50,7 +50,7 @@
 
 class Channel;
 
-const int MAX_PRIORITY = 1000;
+const int MAX_PRIORITY = 10;
 
 /// CPU register state to be saved on context switch.
 ///
@@ -105,7 +105,7 @@ private:
 public:
 
     /// Initialize a `Thread`.
-    Thread(const char *debugName, bool joinable = true, int priority = 0);
+    Thread(const char *debugName, bool joinable = true, int priority = MAX_PRIORITY);
 
     /// Deallocate a Thread.
     ///
