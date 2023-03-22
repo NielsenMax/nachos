@@ -50,8 +50,7 @@ void Lock::Acquire()
     if (owner != nullptr && owner->GetPriority() < priority)
     {
         DEBUG('b', "The owner %s has lower priority than the current thread %s.\n", owner->GetName(), currentThread->GetName());
-        owner->SetPriority(priority);
-        scheduler->SwitchPriority(owner);
+        scheduler->SwitchPriority(owner, priority);
     }
 #endif
 

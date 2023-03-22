@@ -138,6 +138,7 @@ public:
 
     void Print() const;
 
+    int GetRealPriority();
     int GetPriority();
     void SetPriority(int priority);
     void ResetPriority();

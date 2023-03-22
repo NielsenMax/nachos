@@ -70,7 +70,7 @@ Scheduler::FindNextToRun()
 {
     DEBUG('b', "Finding next thread to run.\n");
     unsigned i;
-    for (i = MAX_PRIORITY; i >= 1 && readyList[i]->IsEmpty(); i--)
+    for (i = MAX_PRIORITY - 1; i >= 0 && readyList[i]->IsEmpty(); i--)
         ;
     return readyList[i]->Pop();
 }
@@ -160,14 +160,12 @@ void Scheduler::Print()
     }
 }
 
-void Scheduler::SwitchPriority(Thread *thread)
+void Scheduler::SwitchPriority(Thread *thread, int priority)
 {
-    for (unsigned i = 0; i <= MAX_PRIORITY; i++)
+    thread->SetPriority(priority);
+    if (readyList[thread->GetRealPriority()]->Has(thread))
     {
-        if (readyList[i]->Has(thread))
-        {
-            readyList[i]->Remove(thread);
-            ReadyToRun(thread);
-        }
+        readyList[thread->GetRealPriority()]->Remove(thread);
     }
+    ReadyToRun(thread);
 }

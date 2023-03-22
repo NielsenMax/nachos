@@ -92,6 +92,11 @@ int Thread::GetPriority()
     return priority;
 }
 
+int Thread::GetRealPriority()
+{
+    return realPriority;
+}
+
 void Thread::SetPriority(int newPriority)
 {
     ASSERT(newPriority <= MAX_PRIORITY && newPriority >= 0);
