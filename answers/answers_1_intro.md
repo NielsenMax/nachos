@@ -145,3 +145,4 @@
 ## 17. En threads se provee un caso de prueba que implementa el jardın ornamental. Sinembargo, el resultado es erroneo. Corrıjalo de forma que se mantengan los cambios de contexto, sin agregar nuevas variables.
     Completado, permutar linea 26 y 27
 ## 18. Replique el jardın ornamental en un nuevo caso de prueba. Revierta la solucion anterior y solucione el problema usando semaforos esta vez.
+    Completado
