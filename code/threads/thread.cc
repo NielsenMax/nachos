@@ -51,15 +51,6 @@ Thread::Thread(const char *threadName, bool joinable_)
     channel = new Channel(threadName);
 }
 
-int Thread::Join()
-{
-    ASSERT(joinable);
-
-    int result;
-    channel->Receive(&result);
-
-    return result;
-}
 
 /// De-allocate a thread.
 ///
@@ -76,9 +67,20 @@ Thread::~Thread()
     ASSERT(this != currentThread);
     if (stack != nullptr)
     {
+        delete channel;
         SystemDep::DeallocBoundedArray((char *)stack,
                                        STACK_SIZE * sizeof *stack);
     }
+}
+
+int Thread::Join()
+{
+    ASSERT(joinable);
+
+    int result = 0;
+    channel->Receive(&result);
+
+    return result;
 }
 
 /// Invoke `(*func)(arg)`, allowing caller and callee to execute
