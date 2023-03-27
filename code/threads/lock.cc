@@ -27,6 +27,8 @@ Lock::Lock(const char *debugName)
     semName = new char[strlen(debugName) + 16];
     sprintf(semName, "LockSemaphore::%s", debugName);
     semaphore = new Semaphore(semName, 1); 
+
+    owner = nullptr;
 }
 
 Lock::~Lock()
@@ -55,7 +57,7 @@ Lock::Release()
 {
     DEBUG('t', "RELEASING %s: The owner is %p and the current is %p\n", GetName(), owner, currentThread);
     ASSERT(IsHeldByCurrentThread());
-    owner = NULL;
+    owner = nullptr;
     semaphore->V();
 }
 
