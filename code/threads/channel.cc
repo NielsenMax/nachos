@@ -5,64 +5,43 @@
 
 
 Channel::Channel(const char* debugName) {
-    lockName = new char[strlen(debugName) + 14];
+    lockName = new char[strlen(debugName) + 15];
     sprintf(lockName, "ChannelLock::%s", debugName);
     lock = new Lock(lockName);
 
-    conditionNameEmptyBuffer = new char[strlen(debugName) + 16];
-    sprintf(conditionNameEmptyBuffer, "ConditionEmpty::%s", debugName);
-    emptyBuffer = new Condition(conditionNameEmptyBuffer, lock);
+    semaphoreNameCommunicationAck = new char[strlen(debugName) + 15];
+    sprintf(semaphoreNameCommunicationAck, "SemaphoreAck::%s", debugName);
+    communicationAck = new Semaphore(semaphoreNameCommunicationAck, 0);
 
-    conditionNameFullBuffer = new char[strlen(debugName) + 15];
-    sprintf(conditionNameFullBuffer, "ConditionFull::%s", debugName);
-    fullBuffer = new Condition(conditionNameFullBuffer, lock);
+    semaphoreNameRecievers = new char[strlen(debugName) + 21];
+    sprintf(semaphoreNameRecievers, "SemaphoreRecievers::%s", debugName);
+    recievers = new Semaphore(semaphoreNameRecievers, 0);
 
-    conditionNameCommunicationAck = new char[strlen(debugName) + 14];
-    sprintf(conditionNameCommunicationAck, "ConditionAck::%s", debugName);
-    communicationAck = new Condition(conditionNameCommunicationAck, lock);
-
-    buffer = NULL;
+    buffer = 0;
 }
 
 Channel::~Channel() {
     delete lock;
-    delete conditionNameCommunicationAck;
-    delete conditionNameEmptyBuffer;
-    delete conditionNameFullBuffer;
-    delete communicationAck;
-    delete fullBuffer;
-    delete emptyBuffer;
     delete lockName;
+    delete recievers;
+    delete semaphoreNameRecievers;
+    delete communicationAck;
+    delete semaphoreNameCommunicationAck;
 }
 
 
 void
 Channel::Send(int msg) {
     lock->Acquire();
-
-    while(buffer != nullptr) {
-        emptyBuffer->Wait();
-    } 
-
-    buffer = &msg;
-    fullBuffer->Signal();
-    communicationAck->Wait();
-    emptyBuffer->Signal();
-
+    buffer = msg;
+    recievers->V();
+    communicationAck->P();
     lock->Release();
 }
 
 void
 Channel::Receive(int* buf) {
-    lock->Acquire();
-
-    while (buffer == nullptr)
-    {
-        fullBuffer->Wait();
-    }
-    *buf = *buffer;
-    buffer = nullptr;
-    communicationAck->Signal();
-
-    lock->Release();
+    recievers->P();
+    *buf = buffer;
+    communicationAck->V();    
 }
