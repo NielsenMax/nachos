@@ -38,7 +38,6 @@
 #ifndef NACHOS_THREADS_THREAD__HH
 #define NACHOS_THREADS_THREAD__HH
 
-
 #include "lib/utility.hh"
 
 #ifdef USER_PROGRAM
@@ -65,9 +64,9 @@ const unsigned MACHINE_STATE_SIZE = 17;
 /// WATCH OUT IF THIS IS NOT BIG ENOUGH!!!!!
 const unsigned STACK_SIZE = 4 * 1024;
 
-
 /// Thread state.
-enum ThreadStatus {
+enum ThreadStatus
+{
     JUST_CREATED,
     RUNNING,
     READY,
@@ -85,9 +84,9 @@ enum ThreadStatus {
 ///
 ///  Some threads also belong to a user address space; threads that only run
 ///  in the kernel have a null address space.
-class Thread {
+class Thread
+{
 private:
-
     // NOTE: DO NOT CHANGE the order of these first two members.
     // THEY MUST be in this position for `SWITCH` to work.
 
@@ -103,7 +102,6 @@ private:
     int realPriority;
 
 public:
-
     /// Initialize a `Thread`.
     Thread(const char *debugName, bool joinable = true, int priority = MAX_PRIORITY);
 
@@ -170,7 +168,6 @@ private:
     int userRegisters[NUM_TOTAL_REGS];
 
 public:
-
     // Save user-level register state.
     void SaveUserState();
 
@@ -184,7 +181,8 @@ public:
 
 /// Magical machine-dependent routines, defined in `switch.s`.
 
-extern "C" {
+extern "C"
+{
     /// First frame on thread execution stack.
     ///
     /// 1. Enable interrupts.
@@ -195,6 +193,5 @@ extern "C" {
     // Stop running `oldThread` and start running `newThread`.
     void SWITCH(Thread *oldThread, Thread *newThread);
 }
-
 
 #endif
