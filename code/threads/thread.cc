@@ -77,7 +77,6 @@ Thread::~Thread()
     }
 }
 
-<<<<<<< HEAD
 int Thread::Join()
 {
     ASSERT(joinable);
@@ -86,7 +85,7 @@ int Thread::Join()
     channel->Receive(&result);
 
     return result;
-=======
+}
 int Thread::GetPriority()
 {
     return priority;
@@ -107,7 +106,6 @@ void Thread::SetPriority(int newPriority)
 void Thread::ResetPriority()
 {
     SetPriority(realPriority);
->>>>>>> WIP
 }
 
 /// Invoke `(*func)(arg)`, allowing caller and callee to execute
