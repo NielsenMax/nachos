@@ -98,4 +98,8 @@ ThreadTestSimple()
     snd->Join();
     thd->Join();
     fht->Join();
+    delete fst;
+    delete snd;
+    delete thd;
+    delete fht;
 }

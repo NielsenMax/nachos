@@ -2,7 +2,7 @@
 #define NACHOS_THREADS_CHANNEL__HH
 
 #include "lock.hh"
-#include "condition.hh"
+#include "semaphore.hh"
 #include "synch_list.hh"
 
 class Channel {
@@ -15,15 +15,14 @@ public:
 
 private:
     char* lockName;
-    char* conditionNameEmptyBuffer;
-    char* conditionNameFullBuffer;
-    char* conditionNameCommunicationAck;
+    char* semaphoreNameRecievers;
+    char* semaphoreNameCommunicationAck;
+    
     Lock* lock;
-
-    Condition* emptyBuffer;
-    Condition* fullBuffer;
-    Condition* communicationAck;
-    int* buffer;
+    Semaphore* recievers;
+    Semaphore* communicationAck;
+    
+    int buffer;
 };
 
 #endif
