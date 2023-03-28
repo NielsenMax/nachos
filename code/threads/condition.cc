@@ -16,21 +16,34 @@
 
 
 #include "condition.hh"
-
+#include <cstring>
+#include <stdio.h>
 
 /// Dummy functions -- so we can compile our later assignments.
 ///
 /// Note -- without a correct implementation of `Condition::Wait`, the test
 /// case in the network assignment will not work!
 
-Condition::Condition(const char *debugName, Lock *conditionLock)
+Condition::Condition(const char *debugName, Lock *conditionLock_)
 {
-    // TODO
+    name = debugName;
+    semName = new char[strlen(debugName) + 21];
+    sprintf(semName, "ConditionSemaphore::%s", debugName);
+    signal = new Semaphore(semName, 0); 
+
+    conditionLock = conditionLock_;
+
+    lockName = new char[strlen(debugName) + 16];
+    sprintf(lockName, "ConditionLock::%s", debugName);
+    waitingLock = new Lock(lockName); 
 }
 
 Condition::~Condition()
 {
-    // TODO
+    delete signal;
+    delete semName;
+    delete waitingLock;
+    delete lockName;
 }
 
 const char *
@@ -42,17 +55,34 @@ Condition::GetName() const
 void
 Condition::Wait()
 {
-    // TODO
+    ASSERT(conditionLock->IsHeldByCurrentThread());
+
+    waitingLock->Acquire();
+    waiting++;
+    waitingLock->Release();
+
+    conditionLock->Release();
+    signal->P();
+    conditionLock->Acquire();
 }
 
 void
 Condition::Signal()
 {
-    // TODO
+    waitingLock->Acquire();
+    if(waiting > 0) {
+        waiting--;
+        signal->V();
+    }
+    waitingLock->Release();
 }
 
 void
 Condition::Broadcast()
 {
-    // TODO
+    waitingLock->Acquire();
+    for(;waiting > 0;waiting--) {
+        signal->V();
+    }
+    waitingLock->Release();
 }

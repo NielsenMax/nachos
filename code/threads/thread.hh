@@ -48,6 +48,9 @@
 
 #include <stdint.h>
 
+class Channel;
+
+const int MAX_PRIORITY = 10;
 
 /// CPU register state to be saved on context switch.
 ///
@@ -94,10 +97,15 @@ private:
     /// All registers except for `stackTop`.
     uintptr_t machineState[MACHINE_STATE_SIZE];
 
+    Channel *channel;
+
+    int priority;
+    int realPriority;
+
 public:
 
     /// Initialize a `Thread`.
-    Thread(const char *debugName);
+    Thread(const char *debugName, bool joinable = true, int priority = MAX_PRIORITY);
 
     /// Deallocate a Thread.
     ///
@@ -116,6 +124,8 @@ public:
     /// Put the thread to sleep and relinquish the processor.
     void Sleep();
 
+    int Join();
+
     /// The thread is done executing.
     void Finish();
 
@@ -127,6 +137,11 @@ public:
     const char *GetName() const;
 
     void Print() const;
+
+    int GetRealPriority();
+    int GetPriority();
+    void SetPriority(int priority);
+    void ResetPriority();
 
 private:
     // Some of the private data for this class is listed above.
@@ -140,6 +155,8 @@ private:
     ThreadStatus status;
 
     const char *name;
+
+    bool joinable;
 
     /// Allocate a stack for thread.  Used internally by `Fork`.
     void StackAllocate(VoidFunctionPtr func, void *arg);

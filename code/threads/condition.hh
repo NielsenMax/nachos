@@ -75,6 +75,15 @@ public:
 private:
 
     const char *name;
+    char * semName;
+    char * lockName;
+
+    int waiting = 0;
+    Lock *waitingLock;
+    Semaphore *signal;
+
+    Lock *conditionLock;
+
 
     // Other needed fields are to be added here.
 };

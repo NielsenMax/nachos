@@ -40,7 +40,8 @@ void
 ThreadTestGardenSemaphore()
 {
     Semaphore* sem = new Semaphore("semaphore_garden_semaphore", 1);
-    void *args[NUM_TURNSTILES][2];
+    void *args[NUM_TURNSTILES][3];
+    Thread *threads[NUM_TURNSTILES];
 
     // Launch a new thread for each turnstile.
     for (unsigned i = 0; i < NUM_TURNSTILES; i++) {
@@ -54,6 +55,7 @@ ThreadTestGardenSemaphore()
         args[i][1] = sem;
 
         Thread *t = new Thread(name);
+        threads[i] = t;
         t->Fork(Turnstile, (void *) args[i]);
     }
 
@@ -61,9 +63,7 @@ ThreadTestGardenSemaphore()
     // not implemented at the beginning, therefore an ad-hoc workaround is
     // applied here.
     for (unsigned i = 0; i < NUM_TURNSTILES; i++) {
-        while (!done[i]) {
-            currentThread->Yield();
-        }
+        threads[i]->Join();
     }
     printf("All turnstiles finished. Final count is %u (should be %u).\n",
            count, ITERATIONS_PER_TURNSTILE * NUM_TURNSTILES);
