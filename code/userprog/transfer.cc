@@ -48,6 +48,7 @@ bool ReadStringFromUser(int userAddress, char *outString,
         *outString = (unsigned char)temp;
 
     } while (*outString++ != '\0' && count < maxByteCount);
+    
 
     return *(outString - 1) == '\0';
 }
