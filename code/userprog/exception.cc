@@ -21,7 +21,6 @@
 /// All rights reserved.  See `copyright.h` for copyright notice and
 /// limitation of liability and disclaimer of warranty provisions.
 
-
 #include "transfer.hh"
 #include "syscall.h"
 #include "filesys/directory_entry.hh"
@@ -29,6 +28,7 @@
 
 #include <stdio.h>
 
+#define FILESYS_NEEDED 1
 
 static void
 IncrementPC()
@@ -82,57 +82,95 @@ SyscallHandler(ExceptionType _et)
 {
     int scid = machine->ReadRegister(2);
 
-    switch (scid) {
+    switch (scid)
+    {
 
-        case SC_HALT:
-            DEBUG('e', "Shutdown, initiated by user program.\n");
-            interrupt->Halt();
-            break;
+    case SC_HALT:
+        DEBUG('e', "Shutdown, initiated by user program.\n");
+        interrupt->Halt();
+        break;
 
-        case SC_CREATE: {
-            int filenameAddr = machine->ReadRegister(4);
-            if (filenameAddr == 0) {
-                DEBUG('e', "Error: address to filename string is null.\n");
-            }
-
-            char filename[FILE_NAME_MAX_LEN + 1];
-            if (!ReadStringFromUser(filenameAddr,
-                                    filename, sizeof filename)) {
-                DEBUG('e', "Error: filename string too long (maximum is %u bytes).\n",
-                      FILE_NAME_MAX_LEN);
-            }
-
-            DEBUG('e', "`Create` requested for file `%s`.\n", filename);
-            break;
+    case SC_CREATE:
+    {
+        int filenameAddr = machine->ReadRegister(4);
+        if (filenameAddr == 0)
+        {
+            DEBUG('e', "Error: address to filename string is null.\n");
         }
 
-        case SC_CLOSE: {
-            int fid = machine->ReadRegister(4);
-            DEBUG('e', "`Close` requested for id %u.\n", fid);
-            break;
+        char filename[FILE_NAME_MAX_LEN + 1];
+        if (!ReadStringFromUser(filenameAddr,
+                                filename, sizeof filename))
+        {
+            DEBUG('e', "Error: filename string too long (maximum is %u bytes).\n",
+                  FILE_NAME_MAX_LEN);
         }
 
-        default:
-            fprintf(stderr, "Unexpected system call: id %d.\n", scid);
-            ASSERT(false);
+        int success = fileSystem->Create(filename, 0);
+        machine->WriteRegister(2, success);
 
+        DEBUG('e', "`Create` requested for file `%s`.\n", filename);
+        break;
+    }
+
+    case SC_EXIT:
+    {
+        int status = machine->ReadRegister(4);
+        currentThread->Finish(status);
+
+        DEBUG('e', "Finish thread with status %d\n", status);
+
+        break;
+    }
+
+    case SC_CLOSE:
+    {
+        int fid = machine->ReadRegister(4);
+        DEBUG('e', "`Close` requested for id %u.\n", fid);
+        break;
+    }
+
+    case SC_REMOVE:
+    {
+        int filenameAddr = machine->ReadRegister(4);
+        if (filenameAddr == 0)
+        {
+            DEBUG('e', "Error: address to filename string is null.\n");
+        }
+
+        char filename[FILE_NAME_MAX_LEN + 1];
+        if (!ReadStringFromUser(filenameAddr,
+                                filename, sizeof filename))
+        {
+            DEBUG('e', "Error: filename string too long (maximum is %u bytes).\n",
+                  FILE_NAME_MAX_LEN);
+        }
+
+        int success = fileSystem->Remove(filename);
+        machine->WriteRegister(2, success);
+
+        DEBUG('e', "`Remove` requested for file `%s`.\n", filename);
+        break;
+    }
+
+    default:
+        fprintf(stderr, "Unexpected system call: id %d.\n", scid);
+        ASSERT(false);
     }
 
     IncrementPC();
 }
 
-
 /// By default, only system calls have their own handler.  All other
 /// exception types are assigned the default handler.
-void
-SetExceptionHandlers()
+void SetExceptionHandlers()
 {
-    machine->SetHandler(NO_EXCEPTION,            &DefaultHandler);
-    machine->SetHandler(SYSCALL_EXCEPTION,       &SyscallHandler);
-    machine->SetHandler(PAGE_FAULT_EXCEPTION,    &DefaultHandler);
-    machine->SetHandler(READ_ONLY_EXCEPTION,     &DefaultHandler);
-    machine->SetHandler(BUS_ERROR_EXCEPTION,     &DefaultHandler);
+    machine->SetHandler(NO_EXCEPTION, &DefaultHandler);
+    machine->SetHandler(SYSCALL_EXCEPTION, &SyscallHandler);
+    machine->SetHandler(PAGE_FAULT_EXCEPTION, &DefaultHandler);
+    machine->SetHandler(READ_ONLY_EXCEPTION, &DefaultHandler);
+    machine->SetHandler(BUS_ERROR_EXCEPTION, &DefaultHandler);
     machine->SetHandler(ADDRESS_ERROR_EXCEPTION, &DefaultHandler);
-    machine->SetHandler(OVERFLOW_EXCEPTION,      &DefaultHandler);
+    machine->SetHandler(OVERFLOW_EXCEPTION, &DefaultHandler);
     machine->SetHandler(ILLEGAL_INSTR_EXCEPTION, &DefaultHandler);
 }
