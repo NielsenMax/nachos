@@ -28,8 +28,6 @@
 
 #include <stdio.h>
 
-#define FILESYS_NEEDED 1
-
 static void
 IncrementPC()
 {
@@ -96,6 +94,8 @@ SyscallHandler(ExceptionType _et)
         if (filenameAddr == 0)
         {
             DEBUG('e', "Error: address to filename string is null.\n");
+            machine->WriteRegister(2, -1);
+            break;
         }
 
         char filename[FILE_NAME_MAX_LEN + 1];
@@ -104,12 +104,23 @@ SyscallHandler(ExceptionType _et)
         {
             DEBUG('e', "Error: filename string too long (maximum is %u bytes).\n",
                   FILE_NAME_MAX_LEN);
+            machine->WriteRegister(2, -1);
+            break;
         }
 
+        DEBUG('e', "`Create` requested for file `%s`.\n", filename);
         int success = fileSystem->Create(filename, 0);
+
+        if (success)
+        {
+            DEBUG('e', "File `%s` created successfully.\n", filename);
+        }
+        else
+        {
+            DEBUG('e', "Failed to create file `%s`.\n", filename);
+        }
         machine->WriteRegister(2, success);
 
-        DEBUG('e', "`Create` requested for file `%s`.\n", filename);
         break;
     }
 
@@ -118,7 +129,7 @@ SyscallHandler(ExceptionType _et)
         int status = machine->ReadRegister(4);
         currentThread->Finish(status);
 
-        DEBUG('e', "Finish thread with status %d\n", status);
+        DEBUG('e', "Finish thread %s with status %d\n", currentThread->GetName(), status);
 
         break;
     }
@@ -136,6 +147,8 @@ SyscallHandler(ExceptionType _et)
         if (filenameAddr == 0)
         {
             DEBUG('e', "Error: address to filename string is null.\n");
+            machine->WriteRegister(2, -1);
+            break;
         }
 
         char filename[FILE_NAME_MAX_LEN + 1];
@@ -144,6 +157,8 @@ SyscallHandler(ExceptionType _et)
         {
             DEBUG('e', "Error: filename string too long (maximum is %u bytes).\n",
                   FILE_NAME_MAX_LEN);
+            machine->WriteRegister(2, -1);
+            break;
         }
 
         int success = fileSystem->Remove(filename);
