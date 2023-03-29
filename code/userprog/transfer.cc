@@ -48,7 +48,6 @@ bool ReadStringFromUser(int userAddress, char *outString,
         *outString = (unsigned char)temp;
 
     } while (*outString++ != '\0' && count < maxByteCount);
-    
 
     return *(outString - 1) == '\0';
 }
@@ -76,7 +75,7 @@ void WriteStringToUser(const char *string, int userAddress)
     ASSERT(userAddress != 0);
     ASSERT(string != nullptr);
 
-    for (unsigned count = 0; string[count] != '\0'; count++)
+    for (unsigned count = 0; *string; count++)
     {
         for (unsigned i = 0; (i < MAX_MMU_RETIRES) && !machine->WriteMem(userAddress, 1, string[count]); i++)
         {
