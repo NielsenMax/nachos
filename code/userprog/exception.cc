@@ -431,7 +431,7 @@ SyscallHandler(ExceptionType _et)
         DEBUG('d', "Finishing thread %s with status %d\n", currentThread->GetName(), status);
         currentThread->Finish(status);
 
-        DEBUG('e', "Finish thread with status %d\n", status);
+        DEBUG('e', "Finish thread %s with status %d\n", currentThread->GetName(), status);
 
         break;
     }
