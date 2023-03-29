@@ -16,6 +16,9 @@
 #include "machine/statistics.hh"
 #include "machine/timer.hh"
 
+// TODO: borrar.
+// #define USER_PROGRAM 1 
+// #define FILESYS_NEEDED 1
 
 /// Initialization and cleanup routines.
 
