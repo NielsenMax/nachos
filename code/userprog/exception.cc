@@ -83,11 +83,27 @@ SyscallHandler(ExceptionType _et)
     switch (scid)
     {
 
+    case SC_READ:
+    {
+        char output = synchConsole->GetChar();
+        DEBUG('e', "Reading from console char %c.\n", output);
+        machine->WriteRegister(2, output);
+        break;
+    }
+    case SC_WRITE:
+    {
+        int input = machine->ReadRegister(4);
+        synchConsole->PutChar(input);
+        DEBUG('e', "PUtting: %c on console.\n", input);
+        break;
+    }
     case SC_HALT:
+    {
+
         DEBUG('e', "Shutdown, initiated by user program.\n");
         interrupt->Halt();
         break;
-
+    }
     case SC_CREATE:
     {
         int filenameAddr = machine->ReadRegister(4);
@@ -109,17 +125,18 @@ SyscallHandler(ExceptionType _et)
         }
 
         DEBUG('e', "`Create` requested for file `%s`.\n", filename);
-        int success = fileSystem->Create(filename, 0);
+        bool success = fileSystem->Create(filename, 0);
 
         if (success)
         {
             DEBUG('e', "File `%s` created successfully.\n", filename);
+            machine->WriteRegister(2, 0);
         }
         else
         {
             DEBUG('e', "Failed to create file `%s`.\n", filename);
+            machine->WriteRegister(2, -1);
         }
-        machine->WriteRegister(2, success);
 
         break;
     }
@@ -162,9 +179,17 @@ SyscallHandler(ExceptionType _et)
         }
 
         int success = fileSystem->Remove(filename);
-        machine->WriteRegister(2, success);
+        if (success)
+        {
+            DEBUG('e', "File `%s` removed successfully.\n", filename);
+            machine->WriteRegister(2, 0);
+        }
+        else
+        {
+            DEBUG('e', "Failed to remove file `%s`.\n", filename);
+            machine->WriteRegister(2, -1);
+        }
 
-        DEBUG('e', "`Remove` requested for file `%s`.\n", filename);
         break;
     }
 
