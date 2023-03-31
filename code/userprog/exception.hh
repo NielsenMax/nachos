@@ -6,6 +6,7 @@
 #define NACHOS_USERPROG_EXCEPTION__HH
 
 #include "threads/system.hh"
+#include "filesys/open_file.hh"
 
 /// Set exception handlers for every exception type.
 ///

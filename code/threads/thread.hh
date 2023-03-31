@@ -43,6 +43,8 @@
 #ifdef USER_PROGRAM
 #include "machine/machine.hh"
 #include "userprog/address_space.hh"
+#include "lib/table.hh"
+#include "filesys/open_file.hh"
 #endif
 
 #include <stdint.h>
@@ -160,6 +162,7 @@ private:
     void StackAllocate(VoidFunctionPtr func, void *arg);
 
 #ifdef USER_PROGRAM
+    Table <OpenFile*> *fileTable;
     /// User-level CPU register state.
     ///
     /// A thread running a user program actually has *two* sets of CPU
@@ -168,8 +171,14 @@ private:
     int userRegisters[NUM_TOTAL_REGS];
 
 public:
+    int AddFile(OpenFile* file);
+
+    OpenFile* RemoveFile(int fileId);
+    
+    bool HasFile(int fileId);
     // Save user-level register state.
     void SaveUserState();
+
 
     // Restore user-level register state.
     void RestoreUserState();
