@@ -82,7 +82,60 @@ SyscallHandler(ExceptionType _et)
 
     switch (scid)
     {
+    case SC_OPEN:
+    {
+        int filenameAddr = machine->ReadRegister(4);
+        if (filenameAddr == 0)
+        {
+            DEBUG('e', "Error: address to filename string is null.\n");
+            machine->WriteRegister(2, -1);
+            break;
+        }
 
+        char filename[FILE_NAME_MAX_LEN + 1];
+        if (!ReadStringFromUser(filenameAddr,
+                                filename, sizeof filename))
+        {
+            DEBUG('e', "Error: filename string too long (maximum is %u bytes).\n",
+                  FILE_NAME_MAX_LEN);
+            machine->WriteRegister(2, -1);
+            break;
+        }
+
+        OpenFile *file = fileSystem->Open(filename);
+        int fileId = currentThread->AddFile(file);
+
+        if (fileId == -1)
+        {
+            DEBUG('a', "Error: fileTable of %s is full.\n", currentThread->GetName());
+        }
+        else
+        {
+            DEBUG('a', "Thread %s open file %s.\n", currentThread->GetName(), filename);
+        }
+
+        machine->WriteRegister(2, fileId);
+        break;
+    }
+    case SC_CLOSE:
+    {
+        int fileId = machine->ReadRegister(4);
+
+        if (currentThread->HasFile(fileId))
+        {
+
+            currentThread->RemoveFile(fileId);
+            DEBUG('a', "Close requested for id %u.\n", fileId);
+            machine->WriteRegister(2, 1);
+        }
+        else
+        {
+            DEBUG('a', "Error: file %d not open.\n");
+            machine->WriteRegister(2, 0);
+        }
+
+        break;
+    }
     case SC_READ:
     {
         char output = synchConsole->GetChar();
@@ -148,13 +201,6 @@ SyscallHandler(ExceptionType _et)
 
         DEBUG('e', "Finish thread %s with status %d\n", currentThread->GetName(), status);
 
-        break;
-    }
-
-    case SC_CLOSE:
-    {
-        int fid = machine->ReadRegister(4);
-        DEBUG('e', "`Close` requested for id %u.\n", fid);
         break;
     }
 

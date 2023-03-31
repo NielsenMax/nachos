@@ -50,11 +50,11 @@ Thread::Thread(const char *threadName, bool joinable_, int priority_)
     stack = nullptr;
     status = JUST_CREATED;
 #ifdef USER_PROGRAM
+    fileTable = new Table<OpenFile *>();
     space = nullptr;
 #endif
     channel = new Channel(threadName);
 }
-
 
 /// De-allocate a thread.
 ///
@@ -75,6 +75,9 @@ Thread::~Thread()
         SystemDep::DeallocBoundedArray((char *)stack,
                                        STACK_SIZE * sizeof *stack);
     }
+#ifdef USER_PROGRAM
+    delete fileTable;
+#endif
 }
 
 int Thread::Join()
@@ -323,6 +326,20 @@ void Thread::StackAllocate(VoidFunctionPtr func, void *arg)
 
 #ifdef USER_PROGRAM
 #include "machine/machine.hh"
+
+OpenFile *Thread::RemoveFile(int fileId)
+{
+    OpenFile *file = fileTable->Remove(fileId);
+    delete file;
+}
+int Thread::AddFile(OpenFile *file)
+{
+    return fileTable->Add(file);
+}
+bool Thread::HasFile(int fileId)
+{
+    return fileTable->HasKey(fileId);
+}
 
 /// Save the CPU state of a user program on a context switch.
 ///

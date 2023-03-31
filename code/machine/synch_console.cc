@@ -6,15 +6,15 @@
 static void
 ReadAvailProxy(void *args)
 {
-    ASSERT(data != nullptr);
-    ((SynchConsole *)data)->ReadAvail();
+    ASSERT(args != nullptr);
+    ((SynchConsole *)args)->ReadAvail();
 }
 
 static void
 WriteDoneProxy(void *args)
 {
-    ASSERT(data != nullptr);
-    ((SynchConsole *)data)->WriteDone();
+    ASSERT(args != nullptr);
+    ((SynchConsole *)args)->WriteDone();
 }
 
 SynchConsole::SynchConsole(const char *in, const char *out)

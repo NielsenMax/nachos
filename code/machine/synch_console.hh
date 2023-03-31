@@ -27,6 +27,8 @@
 #include "console.hh"
 #include "threads/lock.hh"
 
+class Lock;
+
 /// The following class defines a hardware console device.
 ///
 /// Input and output to the device is simulated by reading and writing to
