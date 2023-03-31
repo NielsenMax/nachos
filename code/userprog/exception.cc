@@ -436,13 +436,6 @@ SyscallHandler(ExceptionType _et)
         break;
     }
 
-    case SC_CLOSE:
-    {
-        int fid = machine->ReadRegister(4);
-        DEBUG('e', "`Close` requested for id %u.\n", fid);
-        break;
-    }
-
     case SC_REMOVE:
     {
         int filenameAddr = machine->ReadRegister(4);
