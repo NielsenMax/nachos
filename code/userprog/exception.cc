@@ -260,7 +260,7 @@ SyscallHandler(ExceptionType _et)
         int bufferAddr = machine->ReadRegister(4);
         if (bufferAddr == 0)
         {
-            DEBUG('e', "Error: .\n");
+            DEBUG('e', "Error: address to filename string is null.\n");
             machine->WriteRegister(2, -1);
             break;
         }
