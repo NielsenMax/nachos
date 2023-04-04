@@ -49,10 +49,10 @@ Thread::Thread(const char *threadName, bool joinable_, int priority_)
     stackTop = nullptr;
     stack = nullptr;
     status = JUST_CREATED;
-#ifdef USER_PROGRAM
+// #ifdef USER_PROGRAM
     fileTable = new Table<OpenFile *>();
     space = nullptr;
-#endif
+// #endif
     channel = new Channel(threadName);
 }
 
@@ -190,14 +190,14 @@ void Thread::Print() const
 ///
 /// NOTE: we disable interrupts, so that we do not get a time slice between
 /// setting `threadToBeDestroyed`, and going to sleep.
-void Thread::Finish(int status)
+void Thread::Finish(int _status)
 {
     interrupt->SetLevel(INT_OFF);
     ASSERT(this == currentThread);
 
     DEBUG('t', "Finishing thread \"%s\"\n", GetName());
 
-    channel->Send(status);
+    channel->Send(_status);
     threadToBeDestroyed = currentThread;
     Sleep(); // Invokes `SWITCH`.
     // Not reached.
@@ -320,10 +320,10 @@ void Thread::StackAllocate(VoidFunctionPtr func, void *arg)
     machineState[WhenDonePCState] = (uintptr_t)ThreadFinish;
 }
 
-#ifdef USER_PROGRAM
+// #ifdef USER_PROGRAM
 #include "machine/machine.hh"
 
-OpenFile *Thread::RemoveFile(int fileId)
+void Thread::RemoveFile(int fileId)
 {
     OpenFile *file = fileTable->Remove(fileId);
     delete file;
@@ -335,6 +335,10 @@ int Thread::AddFile(OpenFile *file)
 bool Thread::HasFile(int fileId)
 {
     return fileTable->HasKey(fileId);
+}
+OpenFile *Thread::GetFile(int fileId)
+{
+    return fileTable->Get(fileId);
 }
 
 /// Save the CPU state of a user program on a context switch.
@@ -363,4 +367,4 @@ void Thread::RestoreUserState()
     }
 }
 
-#endif
+// #endif

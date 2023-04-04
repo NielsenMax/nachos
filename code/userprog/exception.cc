@@ -138,16 +138,88 @@ SyscallHandler(ExceptionType _et)
     }
     case SC_READ:
     {
-        char output = synchConsole->GetChar();
-        DEBUG('e', "Reading from console char %c.\n", output);
-        machine->WriteRegister(2, output);
+
+        int bufferAddr = machine->ReadRegister(4);
+        if (bufferAddr == 0)
+        {
+            DEBUG('e', "Error: address to filename string is null.\n");
+            machine->WriteRegister(2, -1);
+            break;
+        }
+
+        int size = machine->ReadRegister(5);
+        int fileId = machine->ReadRegister(6);
+
+        if (!currentThread->HasFile(fileId))
+        {
+            DEBUG('e', "Error: file %d is not open for current thread.\n", fileId);
+            machine->WriteRegister(2, -1);
+            break;
+        }
+
+        char string[size];
+        int read = 0;
+        if (fileId != 0)
+        {
+
+            OpenFile *file = currentThread->GetFile(fileId);
+            read = file->Read(string, size);
+        }
+        else
+        {
+            for (int i = 0; i < size; i++)
+            {
+                string[i] = synchConsole->GetChar();
+            }
+            read = size;
+        }
+        WriteBufferToUser(string, bufferAddr, read);
+        machine->WriteRegister(2, read);
+
         break;
     }
     case SC_WRITE:
     {
-        int input = machine->ReadRegister(4);
-        synchConsole->PutChar(input);
-        DEBUG('e', "PUtting: %c on console.\n", input);
+        // int input = machine->ReadRegister(4);
+        // synchConsole->PutChar(input);
+        // DEBUG('e', "PUtting: %c on console.\n", input);
+        int bufferAddr = machine->ReadRegister(4);
+        if (bufferAddr == 0)
+        {
+            DEBUG('e', "Error: address to filename string is null.\n");
+            machine->WriteRegister(2, -1);
+            break;
+        }
+
+        int size = machine->ReadRegister(5);
+        int fileId = machine->ReadRegister(6);
+
+        if (!currentThread->HasFile(fileId))
+        {
+            DEBUG('e', "Error: file %d is not open for current thread.\n", fileId);
+            machine->WriteRegister(2, -1);
+            break;
+        }
+
+        char string[size];
+        ReadBufferFromUser(bufferAddr, string, size);
+
+        int writed = 0;
+        if (fileId != 1)
+        {
+
+            OpenFile *file = currentThread->GetFile(fileId);
+            writed = file->Write(string, size);
+        }
+        else
+        {
+            for (int i = 0; i < size; i++)
+            {
+                synchConsole->PutChar(string[i]);
+            }
+            writed = size;
+        }
+        machine->WriteRegister(2, writed);
         break;
     }
     case SC_HALT:

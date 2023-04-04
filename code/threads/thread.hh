@@ -40,12 +40,12 @@
 
 #include "lib/utility.hh"
 
-#ifdef USER_PROGRAM
+// #ifdef USER_PROGRAM
 #include "machine/machine.hh"
 #include "userprog/address_space.hh"
 #include "lib/table.hh"
 #include "filesys/open_file.hh"
-#endif
+// #endif
 
 #include <stdint.h>
 
@@ -161,8 +161,8 @@ private:
     /// Allocate a stack for thread.  Used internally by `Fork`.
     void StackAllocate(VoidFunctionPtr func, void *arg);
 
-#ifdef USER_PROGRAM
-    Table <OpenFile*> *fileTable;
+    // #ifdef USER_PROGRAM
+    Table<OpenFile *> *fileTable;
     /// User-level CPU register state.
     ///
     /// A thread running a user program actually has *two* sets of CPU
@@ -171,21 +171,23 @@ private:
     int userRegisters[NUM_TOTAL_REGS];
 
 public:
-    int AddFile(OpenFile* file);
+    int AddFile(OpenFile *file);
 
-    OpenFile* RemoveFile(int fileId);
-    
+    void RemoveFile(int fileId);
+
     bool HasFile(int fileId);
+
+    OpenFile *Thread::GetFile(int fileId);
+
     // Save user-level register state.
     void SaveUserState();
-
 
     // Restore user-level register state.
     void RestoreUserState();
 
     // User code this thread is running.
     AddressSpace *space;
-#endif
+    // #endif
 };
 
 /// Magical machine-dependent routines, defined in `switch.s`.
