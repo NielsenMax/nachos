@@ -51,7 +51,6 @@ THREAD_HDR = threads/condition.hh             \
              threads/thread_test_priority_inversion.hh \
              threads/thread_test_prod_cons.hh \
              threads/thread_test_simple.hh    \
-             machine/synch_console.hh         \
              lib/assert.hh                    \
              lib/debug.hh                     \
              lib/debug_opts.hh                \
@@ -79,7 +78,6 @@ THREAD_SRC = threads/main.cc                  \
              threads/thread_test_priority_inversion.cc  \
              threads/thread_test_prod_cons.cc \
              threads/thread_test_simple.cc    \
-             machine/synch_console.cc         \
              lib/assert.cc                    \
              lib/debug.cc                     \
              lib/utility.cc                   \
@@ -94,6 +92,7 @@ USERPROG_HDR = userprog/address_space.hh            \
                userprog/debugger.hh                 \
                userprog/debugger_command_manager.hh \
                userprog/executable.hh               \
+               userprog/synch_console.hh         \
                userprog/transfer.hh                 \
                filesys/file_system.hh               \
                filesys/open_file.hh                 \
@@ -110,6 +109,7 @@ USERPROG_SRC = userprog/address_space.cc            \
                userprog/args.cc                     \
                userprog/debugger.cc                 \
                userprog/debugger_command_manager.cc \
+               userprog/synch_console.cc         \
                userprog/executable.cc               \
                userprog/exception.cc                \
                userprog/prog_test.cc                \

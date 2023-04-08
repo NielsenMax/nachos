@@ -40,12 +40,12 @@
 
 #include "lib/utility.hh"
 
-// #ifdef USER_PROGRAM
+#ifdef USER_PROGRAM
 #include "machine/machine.hh"
 #include "userprog/address_space.hh"
 #include "lib/table.hh"
 #include "filesys/open_file.hh"
-// #endif
+#endif
 
 #include <stdint.h>
 
@@ -161,7 +161,7 @@ private:
     /// Allocate a stack for thread.  Used internally by `Fork`.
     void StackAllocate(VoidFunctionPtr func, void *arg);
 
-    // #ifdef USER_PROGRAM
+    #ifdef USER_PROGRAM
     Table<OpenFile *> *fileTable;
     /// User-level CPU register state.
     ///
@@ -177,7 +177,7 @@ public:
 
     bool HasFile(int fileId);
 
-    OpenFile *Thread::GetFile(int fileId);
+    OpenFile *GetFile(int fileId);
 
     // Save user-level register state.
     void SaveUserState();
@@ -187,7 +187,7 @@ public:
 
     // User code this thread is running.
     AddressSpace *space;
-    // #endif
+    #endif
 };
 
 /// Magical machine-dependent routines, defined in `switch.s`.

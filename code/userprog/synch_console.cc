@@ -1,7 +1,6 @@
 #include "synch_console.hh"
-#include "threads/system.hh"
 
-#include <stdio.h>
+// #include <stdio.h>
 
 static void
 ReadAvailProxy(void *args)
@@ -23,7 +22,7 @@ SynchConsole::SynchConsole(const char *in, const char *out)
     writeDone = new Semaphore("WriteDoneSemaphore", 0);
     writeLock = new Lock("SynchConsoleWriteLock");
     readLock = new Lock("SynchConsoleReadLock");
-    console = new Console(in, out, ReadAvailProxy, WriteDoneProxy, this);
+    console = new Console(nullptr, nullptr, ReadAvailProxy, WriteDoneProxy, this);
 }
 
 void SynchConsole::ReadAvail()
@@ -41,6 +40,7 @@ SynchConsole::~SynchConsole()
     delete readAvail;
     delete writeDone;
     delete writeLock;
+    delete readLock;
     delete console;
 }
 

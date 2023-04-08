@@ -49,10 +49,10 @@ Thread::Thread(const char *threadName, bool joinable_, int priority_)
     stackTop = nullptr;
     stack = nullptr;
     status = JUST_CREATED;
-// #ifdef USER_PROGRAM
+#ifdef USER_PROGRAM
     fileTable = new Table<OpenFile *>();
     space = nullptr;
-// #endif
+#endif
     channel = new Channel(threadName);
 }
 
@@ -320,7 +320,7 @@ void Thread::StackAllocate(VoidFunctionPtr func, void *arg)
     machineState[WhenDonePCState] = (uintptr_t)ThreadFinish;
 }
 
-// #ifdef USER_PROGRAM
+#ifdef USER_PROGRAM
 #include "machine/machine.hh"
 
 void Thread::RemoveFile(int fileId)
@@ -367,4 +367,4 @@ void Thread::RestoreUserState()
     }
 }
 
-// #endif
+#endif
