@@ -23,8 +23,7 @@
 #ifndef NACHOS_MACHINE_SYNCH_CONSOLE__HH
 #define NACHOS_MACHINE_SYNCH_CONSOLE__HH
 
-#include "lib/utility.hh"
-#include "console.hh"
+#include "machine/console.hh"
 #include "threads/lock.hh"
 
 class Lock;
