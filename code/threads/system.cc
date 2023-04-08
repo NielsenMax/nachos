@@ -293,10 +293,7 @@ Cleanup()
 #ifdef USER_PROGRAM
     delete machine;
     delete synchConsole;
-<<<<<<< HEAD
     delete threadsTable;
-=======
->>>>>>> e561007 (Add read and write to console syscall)
 #endif
 
 #ifdef FILESYS_NEEDED

@@ -47,7 +47,7 @@
 #include "userprog/address_space.hh"
 #include "lib/table.hh"
 #include "filesys/open_file.hh"
-// #endif
+#endif
 
 #include <stdint.h>
 

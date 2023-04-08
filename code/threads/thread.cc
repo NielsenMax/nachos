@@ -364,7 +364,7 @@ void Thread::StackAllocate(VoidFunctionPtr func, void *arg)
     machineState[WhenDonePCState] = (uintptr_t)ThreadFinish;
 }
 
-// #ifdef USER_PROGRAM
+#ifdef USER_PROGRAM
 #include "machine/machine.hh"
 
 void Thread::RemoveFile(int fileId)
@@ -411,4 +411,4 @@ void Thread::RestoreUserState()
     }
 }
 
-// #endif
+#endif
