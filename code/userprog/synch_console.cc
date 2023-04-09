@@ -22,7 +22,7 @@ SynchConsole::SynchConsole(const char *in, const char *out)
     writeDone = new Semaphore("WriteDoneSemaphore", 0);
     writeLock = new Lock("SynchConsoleWriteLock");
     readLock = new Lock("SynchConsoleReadLock");
-    console = new Console(nullptr, nullptr, ReadAvailProxy, WriteDoneProxy, this);
+    console = new Console(in, out, ReadAvailProxy, WriteDoneProxy, this);
 }
 
 void SynchConsole::ReadAvail()
