@@ -34,15 +34,15 @@ extern Interrupt *interrupt;        ///< Interrupt status.
 extern Statistics *stats;           ///< Performance metrics.
 extern Timer *timer;                ///< The hardware alarm clock.
 
-// #ifdef USER_PROGRAM
-
+#ifdef USER_PROGRAM
 #include "machine/machine.hh"
-#include "machine/synch_console.hh"
+#include "userprog/synch_console.hh"
 
 class SynchConsole;
+
 extern Machine *machine; // User program memory and registers.
 extern SynchConsole *synchConsole; // Console used in syscall testing
-// #endif
+#endif
 
 #ifdef FILESYS_NEEDED // *FILESYS* or *FILESYS_STUB*.
 #include "filesys/file_system.hh"

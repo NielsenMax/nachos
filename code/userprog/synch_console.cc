@@ -1,7 +1,6 @@
 #include "synch_console.hh"
-#include "threads/system.hh"
 
-#include <stdio.h>
+// #include <stdio.h>
 
 static void
 ReadAvailProxy(void *args)
@@ -41,6 +40,7 @@ SynchConsole::~SynchConsole()
     delete readAvail;
     delete writeDone;
     delete writeLock;
+    delete readLock;
     delete console;
 }
 

@@ -8,25 +8,24 @@
 /// All rights reserved.  See `copyright.h` for copyright notice and
 /// limitation of liability and disclaimer of warranty provisions.
 
-
 #include "address_space.hh"
 #include "machine/console.hh"
 #include "threads/semaphore.hh"
 #include "threads/system.hh"
+#include "synch_console.hh"
 
 #include <stdio.h>
-
 
 /// Run a user program.
 ///
 /// Open the executable, load it into memory, and jump to it.
-void
-StartProcess(const char *filename)
+void StartProcess(const char *filename)
 {
     ASSERT(filename != nullptr);
 
     OpenFile *executable = fileSystem->Open(filename);
-    if (executable == nullptr) {
+    if (executable == nullptr)
+    {
         printf("Unable to open file %s\n", filename);
         return;
     }
@@ -36,12 +35,12 @@ StartProcess(const char *filename)
 
     delete executable;
 
-    space->InitRegisters();  // Set the initial register values.
-    space->RestoreState();   // Load page table register.
+    space->InitRegisters(); // Set the initial register values.
+    space->RestoreState();  // Load page table register.
 
-    machine->Run();  // Jump to the user progam.
-    ASSERT(false);   // `machine->Run` never returns; the address space
-                     // exits by doing the system call `Exit`.
+    machine->Run(); // Jump to the user progam.
+    ASSERT(false);  // `machine->Run` never returns; the address space
+                    // exits by doing the system call `Exit`.
 }
 
 /// Data structures needed for the console test.
@@ -49,7 +48,7 @@ StartProcess(const char *filename)
 /// Threads making I/O requests wait on a `Semaphore` to delay until the I/O
 /// completes.
 
-static Console   *console;
+static Console *console;
 static Semaphore *readAvail;
 static Semaphore *writeDone;
 
@@ -73,20 +72,42 @@ WriteDone(void *arg)
 /// output.
 ///
 /// Stop when the user types a `q`.
-void
-ConsoleTest(const char *in, const char *out)
+void ConsoleTest(const char *in, const char *out)
 {
-    console   = new Console(in, out, ReadAvail, WriteDone, 0);
+    console = new Console(in, out, ReadAvail, WriteDone, 0);
     readAvail = new Semaphore("read avail", 0);
     writeDone = new Semaphore("write done", 0);
 
-    for (;;) {
-        readAvail->P();        // Wait for character to arrive.
+    for (;;)
+    {
+        readAvail->P(); // Wait for character to arrive.
         char ch = console->GetChar();
-        console->PutChar(ch);  // Echo it!
-        writeDone->P();        // Wait for write to finish.
-        if (ch == 'q') {
-            return;  // If `q`, then quit.
+        console->PutChar(ch); // Echo it!
+        writeDone->P();       // Wait for write to finish.
+        if (ch == 'q')
+        {
+            return; // If `q`, then quit.
+        }
+    }
+}
+
+/// Test the SYNCH console by echoing characters typed at the input onto the
+/// output.
+///
+/// Stop when the user types a `q`.
+void SynchConsoleTest()
+{
+    synchConsole = new SynchConsole(nullptr, nullptr);
+    readAvail = new Semaphore("read avail", 0);
+    writeDone = new Semaphore("write done", 0);
+
+    for (;;)
+    {
+        char ch = synchConsole->GetChar();
+        synchConsole->PutChar(ch); // Echo it!
+        if (ch == 'q')
+        {
+            return; // If `q`, then quit.
         }
     }
 }
