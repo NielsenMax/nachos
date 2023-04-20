@@ -70,7 +70,7 @@ Scheduler::FindNextToRun()
 {
     DEBUG('b', "Finding next thread to run.\n");
     unsigned i;
-    for (i = MAX_PRIORITY - 1; i >= 0 && readyList[i]->IsEmpty(); i--)
+    for (i = MAX_PRIORITY; i > 0 && readyList[i]->IsEmpty(); i--)
         ;
     return readyList[i]->Pop();
 }
