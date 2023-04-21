@@ -8,6 +8,8 @@
 #ifndef NACHOS_THREADS_SYSTEM__HH
 #define NACHOS_THREADS_SYSTEM__HH
 
+#define USER_PROGRAM 1;
+
 #include "thread.hh"
 #include "scheduler.hh"
 #include "lib/utility.hh"
@@ -37,11 +39,14 @@ extern Timer *timer;                ///< The hardware alarm clock.
 #ifdef USER_PROGRAM
 #include "machine/machine.hh"
 #include "userprog/synch_console.hh"
+#include "lib/bitmap.hh"
 
 class SynchConsole;
 
 extern Machine *machine; // User program memory and registers.
 extern SynchConsole *synchConsole; // Console used in syscall testing
+extern Bitmap *pageMap;
+
 #endif
 
 #ifdef FILESYS_NEEDED // *FILESYS* or *FILESYS_STUB*.

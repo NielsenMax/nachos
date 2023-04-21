@@ -34,6 +34,7 @@ Timer *timer;                 ///< The hardware timer device, for invoking
 PreemptiveScheduler *preemptiveScheduler = nullptr;
 const long long DEFAULT_TIME_SLICE = 50000;
 
+
 #ifdef FILESYS_NEEDED
 FileSystem *fileSystem;
 #endif
@@ -45,6 +46,7 @@ SynchDisk *synchDisk;
 #ifdef USER_PROGRAM  // Requires either *FILESYS* or *FILESYS_STUB*.
 Machine *machine;  ///< User program memory and registers.
 SynchConsole *synchConsole;
+Bitmap *pageMap;
 #endif
 
 #ifdef NETWORK
@@ -137,6 +139,7 @@ Initialize(int argc, char **argv)
 
 #ifdef USER_PROGRAM
     bool debugUserProg = false;  // Single step user program.
+    pageMap = new Bitmap(NUM_PHYS_PAGES);
     // synchConsole = new SynchConsole(NULL, NULL);
 #endif
 #ifdef FILESYS_NEEDED

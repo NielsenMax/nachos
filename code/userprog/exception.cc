@@ -82,6 +82,46 @@ SyscallHandler(ExceptionType _et)
 
     switch (scid)
     {
+    case SC_EXEC:
+    {
+        int filenameAddr = machine->ReadRegister(4);
+        int priority = machine->ReadRegister(5);
+        int enableJoin = machine->ReadRegister(6);
+
+        if (filenameAddr == 0)
+        {
+            DEBUG('e', "Error: address to filename string is null.\n");
+            machine->WriteRegister(2, -1);
+            break;
+        }
+
+        char filename[FILE_NAME_MAX_LEN + 1];
+        if (!ReadStringFromUser(filenameAddr,
+                                filename, sizeof filename))
+        {
+            DEBUG('e', "Error: filename string too long (maximum is %u bytes).\n",
+                  FILE_NAME_MAX_LEN);
+            machine->WriteRegister(2, -1);
+            break;
+        }
+
+        OpenFile *file = fileSystem->Open(filename);
+
+        AddressSpace *newAddrSpace = new AddressSpace(file);
+        newAddrSpace->InitRegisters(); // Set the initial register values.
+        newAddrSpace->RestoreState();  // Load page table register.
+
+        Thread *newThread = new Thread(filename, bool(enableJoin), currentThread->GetPriority());
+        newThread->space = newAddrSpace;
+
+        machine->Run();
+
+        machine->WriteRegister(2, newThread->GetSpaceId());
+
+        delete file;
+
+        break;
+    }
     case SC_OPEN:
     {
         int filenameAddr = machine->ReadRegister(4);
@@ -115,6 +155,7 @@ SyscallHandler(ExceptionType _et)
         }
 
         machine->WriteRegister(2, fileId);
+
         break;
     }
     case SC_CLOSE:
