@@ -10,8 +10,10 @@
 #include "threads/system.hh"
 #include "lib/utility.hh"
 
-#include <string.h>
 #include <string>
+#include "machine/mmu.hh"
+
+#include <string.h>
 
 /// First, set up the translation from program memory to physical memory.
 /// For now, this is really simple (1:1), since we are only uniprogramming,
