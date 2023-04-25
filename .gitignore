@@ -1,2 +1,2 @@
 **/*.o
-code/threads/nachos
+code/**/nachos
