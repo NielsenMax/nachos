@@ -75,7 +75,10 @@ AddressSpace::AddressSpace(OpenFile *executable_file)
 
         for (unsigned i = 0; i < DivRoundUp(codeSize, PAGE_SIZE); i++)
         {
-            uint32_t physicalAddr = TranslateVirtualAddrToPhysicalAddr(virtualAddr);
+            uint32_t virtualPage;
+            uint32_t physicalAddr = TranslateVirtualAddrToPhysicalAddr(virtualAddr, &virtualPage);
+
+            pageTable[virtualPage].readOnly = true;
 
             uint32_t toRead = leftOverSize < PAGE_SIZE ? leftOverSize : PAGE_SIZE;
 
@@ -97,7 +100,11 @@ AddressSpace::AddressSpace(OpenFile *executable_file)
 
         for (unsigned i = 0; i < DivRoundUp(initDataSize, PAGE_SIZE); i++)
         {
-            uint32_t physicalAddr = TranslateVirtualAddrToPhysicalAddr(virtualAddr);
+            uint32_t virtualPage;
+            uint32_t physicalAddr = TranslateVirtualAddrToPhysicalAddr(virtualAddr, &virtualPage);
+
+            // if the code segment and the data segment share a page this will remove the readonly property
+            pageTable[virtualPage].readOnly = false;
 
             uint32_t toRead = leftOverSize < PAGE_SIZE ? leftOverSize : PAGE_SIZE;
 
@@ -113,10 +120,16 @@ AddressSpace::AddressSpace(OpenFile *executable_file)
 }
 
 uint32_t
-AddressSpace::TranslateVirtualAddrToPhysicalAddr(uint32_t virtualAddr)
+AddressSpace::TranslateVirtualAddrToPhysicalAddr(uint32_t virtualAddr, uint32_t *virtualPagePointer)
 {
     uint32_t virtualPage = DivRoundDown(virtualAddr, PAGE_SIZE);
     uint32_t pageOffset = virtualAddr % PAGE_SIZE;
+
+    if (virtualPagePointer != nullptr)
+    {
+
+        *virtualPagePointer = virtualPage;
+    }
 
     return pageTable[virtualPage].physicalPage * PAGE_SIZE + pageOffset;
 }
@@ -168,16 +181,6 @@ void AddressSpace::InitRegisters()
 /// For now, nothing!
 void AddressSpace::SaveState()
 {
-    // int stackAddr = machine->ReadRegister(STACK_REG);
-
-    // for (unsigned i = 0; i < NUM_TOTAL_REGS; i++)
-    // {
-    //     int registryValue = machine->ReadRegister(i);
-    //     int physicalAddr = TranslateVirtualAddrToPhysicalAddr(stackAddr);
-
-    //     machine->GetMMU()->WriteMem(physicalAddr, 4, registryValue);
-    //     stackAddr-=4;
-    // }
 }
 
 /// On a context switch, restore the machine state so that this address space
