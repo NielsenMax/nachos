@@ -61,7 +61,7 @@ public:
 private:
     /// Assume linear page table translation for now!
 
-    uint32_t TranslateVirtualAddrToPhysicalAddr(uint32_t virtualAddr);
+    unsigned TranslateVirtualAddrToPhysicalAddr(unsigned virtualAddr, unsigned *virtualPagePointer = nullptr);
 
     /// Number of pages in the virtual address space.
     OpenFile *executable_file;
