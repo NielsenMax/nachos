@@ -40,6 +40,8 @@
 
 #include "lib/utility.hh"
 
+#define USER_PROGRAM 1
+
 #ifdef USER_PROGRAM
 #include "machine/machine.hh"
 #include "userprog/address_space.hh"
@@ -170,6 +172,8 @@ private:
     /// state while executing kernel code.
     int userRegisters[NUM_TOTAL_REGS];
 
+    int spaceId;
+
 public:
     int AddFile(OpenFile *file);
 
@@ -187,6 +191,8 @@ public:
 
     // User code this thread is running.
     AddressSpace *space;
+
+    int SetAddressSpace(AddressSpace *space);
     #endif
 };
 

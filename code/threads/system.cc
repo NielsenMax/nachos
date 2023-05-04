@@ -34,6 +34,7 @@ Timer *timer;                 ///< The hardware timer device, for invoking
 PreemptiveScheduler *preemptiveScheduler = nullptr;
 const long long DEFAULT_TIME_SLICE = 50000;
 
+#define FILESYS_NEEDED 1 
 
 #ifdef FILESYS_NEEDED
 FileSystem *fileSystem;
@@ -47,6 +48,7 @@ SynchDisk *synchDisk;
 Machine *machine;  ///< User program memory and registers.
 SynchConsole *synchConsole;
 Bitmap *pageMap;
+Table<Thread*> *userPrograms;
 #endif
 
 #ifdef NETWORK

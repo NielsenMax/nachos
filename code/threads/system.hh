@@ -40,12 +40,14 @@ extern Timer *timer;                ///< The hardware alarm clock.
 #include "machine/machine.hh"
 #include "userprog/synch_console.hh"
 #include "lib/bitmap.hh"
+#include "lib/table.hh"
 
 class SynchConsole;
 
 extern Machine *machine; // User program memory and registers.
 extern SynchConsole *synchConsole; // Console used in syscall testing
 extern Bitmap *pageMap;
+extern Table<Thread*> *userPrograms;
 
 #endif
 

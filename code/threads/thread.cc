@@ -77,7 +77,17 @@ Thread::~Thread()
     }
 #ifdef USER_PROGRAM
     delete fileTable;
+    if(space != nullptr){
+        userPrograms->Remove(spaceId);
+        delete space;
+    }
 #endif
+}
+
+int Thread::SetAddressSpace(AddressSpace *space_){
+    space = space_;
+    spaceId = userPrograms->Add(this);
+    return spaceId;
 }
 
 int Thread::Join()
