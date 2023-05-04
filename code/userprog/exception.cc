@@ -55,8 +55,12 @@ DefaultHandler(ExceptionType et)
     int exceptionArg = machine->ReadRegister(2);
 
     fprintf(stderr, "Unexpected user mode exception: %s, arg %d.\n",
-            ExceptionTypeToString(et), exceptionArg);
+        ExceptionTypeToString(et), exceptionArg);
     ASSERT(false);
+}
+
+void runProgram(void* args) {
+    machine->Run();
 }
 
 /// Handle a system call exception.
@@ -97,29 +101,44 @@ SyscallHandler(ExceptionType _et)
 
         char filename[FILE_NAME_MAX_LEN + 1];
         if (!ReadStringFromUser(filenameAddr,
-                                filename, sizeof filename))
+            filename, sizeof filename))
         {
             DEBUG('e', "Error: filename string too long (maximum is %u bytes).\n",
-                  FILE_NAME_MAX_LEN);
+                FILE_NAME_MAX_LEN);
             machine->WriteRegister(2, -1);
             break;
         }
 
-        OpenFile *file = fileSystem->Open(filename);
+        OpenFile* file = fileSystem->Open(filename);
 
-        AddressSpace *newAddrSpace = new AddressSpace(file);
+        AddressSpace* newAddrSpace = new AddressSpace(file);
         newAddrSpace->InitRegisters(); // Set the initial register values.
         newAddrSpace->RestoreState();  // Load page table register.
 
-        Thread *newThread = new Thread(filename, bool(enableJoin), currentThread->GetPriority());
-        newThread->space = newAddrSpace;
+        Thread* newThread = new Thread(filename, bool(enableJoin), currentThread->GetPriority());
 
-        machine->Run();
+        int spaceId = newThread->SetAddressSpace(newAddrSpace);
 
-        machine->WriteRegister(2, newThread->GetSpaceId());
+        newThread->Fork(runProgram, nullptr);
+
+        machine->WriteRegister(2, spaceId);
 
         delete file;
 
+        break;
+    }
+    case SC_JOIN:
+    {
+        int spaceId = machine->ReadRegister(4);
+
+        if (userPrograms->HasKey(spaceId)) {
+            Thread* programThread = userPrograms->Get(spaceId);
+            int returnCode = programThread->Join();
+            machine->WriteRegister(2, returnCode);
+            break;
+        }
+
+        machine->WriteRegister(2, 1);
         break;
     }
     case SC_OPEN:
@@ -134,15 +153,15 @@ SyscallHandler(ExceptionType _et)
 
         char filename[FILE_NAME_MAX_LEN + 1];
         if (!ReadStringFromUser(filenameAddr,
-                                filename, sizeof filename))
+            filename, sizeof filename))
         {
             DEBUG('e', "Error: filename string too long (maximum is %u bytes).\n",
-                  FILE_NAME_MAX_LEN);
+                FILE_NAME_MAX_LEN);
             machine->WriteRegister(2, -1);
             break;
         }
 
-        OpenFile *file = fileSystem->Open(filename);
+        OpenFile* file = fileSystem->Open(filename);
         int fileId = currentThread->AddFile(file);
 
         if (fileId == -1)
@@ -203,7 +222,7 @@ SyscallHandler(ExceptionType _et)
         if (fileId != 0)
         {
 
-            OpenFile *file = currentThread->GetFile(fileId);
+            OpenFile* file = currentThread->GetFile(fileId);
             read = file->Read(string, size);
         }
         else
@@ -249,7 +268,7 @@ SyscallHandler(ExceptionType _et)
         if (fileId != 1)
         {
 
-            OpenFile *file = currentThread->GetFile(fileId);
+            OpenFile* file = currentThread->GetFile(fileId);
             writed = file->Write(string, size);
         }
         else
@@ -282,10 +301,10 @@ SyscallHandler(ExceptionType _et)
 
         char filename[FILE_NAME_MAX_LEN + 1];
         if (!ReadStringFromUser(filenameAddr,
-                                filename, sizeof filename))
+            filename, sizeof filename))
         {
             DEBUG('e', "Error: filename string too long (maximum is %u bytes).\n",
-                  FILE_NAME_MAX_LEN);
+                FILE_NAME_MAX_LEN);
             machine->WriteRegister(2, -1);
             break;
         }
@@ -329,10 +348,10 @@ SyscallHandler(ExceptionType _et)
 
         char filename[FILE_NAME_MAX_LEN + 1];
         if (!ReadStringFromUser(filenameAddr,
-                                filename, sizeof filename))
+            filename, sizeof filename))
         {
             DEBUG('e', "Error: filename string too long (maximum is %u bytes).\n",
-                  FILE_NAME_MAX_LEN);
+                FILE_NAME_MAX_LEN);
             machine->WriteRegister(2, -1);
             break;
         }
