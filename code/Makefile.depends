@@ -42,6 +42,7 @@
 ../machine/machine.cc
 ../machine/mips_sim.cc
 ../machine/mmu.cc
+../vmem/coremap.cc
 ../filesys/directory.cc
 ../filesys/file_header.cc
 ../filesys/file_system.cc
@@ -97,6 +98,7 @@
 ../machine/machine.hh
 ../machine/mmu.hh
 ../machine/translation_entry.hh
+../vmem/coremap.hh
 ../filesys/directory.hh
 ../filesys/directory_entry.hh
 ../filesys/file_header.hh

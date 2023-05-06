@@ -326,6 +326,7 @@ SyscallHandler(ExceptionType _et)
             DEBUG('d', "[d] Readed %s\n", string);
             read = size;
         }
+        DEBUG('d', "Writing %d buffer to user, 0x%X", size, bufferAddr);
         WriteBufferToUser(string, bufferAddr, read);
         machine->WriteRegister(2, read);
 
