@@ -144,7 +144,7 @@ int main(int argc, char **argv)
         if (!strcmp(*argv, "-x"))
         { // Run a user program.
             ASSERT(argc > 1);
-            // synch_console = new SynchConsole();
+            synchConsole = new SynchConsole(nullptr, nullptr);
             StartProcess(*(argv + 1));
             argCount = 2;
         }

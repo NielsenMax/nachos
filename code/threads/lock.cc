@@ -26,12 +26,13 @@ Lock::Lock(const char *debugName)
     semName = new char[strlen(debugName) + 16];
     sprintf(semName, "LockSemaphore::%s", debugName);
     semaphore = new Semaphore(semName, 1);
+    owner = nullptr;
 }
 
 Lock::~Lock()
 {
     delete semaphore;
-    delete semName;
+    delete [] semName;
 }
 
 const char *

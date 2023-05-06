@@ -7,6 +7,7 @@
 
 #include "threads/system.hh"
 #include "filesys/open_file.hh"
+#include "args.hh"
 
 /// Set exception handlers for every exception type.
 ///
