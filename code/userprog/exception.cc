@@ -21,10 +21,10 @@
 /// All rights reserved.  See `copyright.h` for copyright notice and
 /// limitation of liability and disclaimer of warranty provisions.
 
+#include "exception.hh"
 #include "transfer.hh"
 #include "syscall.h"
 #include "filesys/directory_entry.hh"
-#include "threads/system.hh"
 
 #include <stdio.h>
 
@@ -59,7 +59,22 @@ DefaultHandler(ExceptionType et)
     ASSERT(false);
 }
 
-void runProgram(void* args) {
+void runProgram(void* argv_) {
+    currentThread->space->InitRegisters(); // Set the initial register values.
+    currentThread->space->RestoreState();  // Load page table register.
+
+    if (argv_ != nullptr) {
+        char** argv = (char**)argv_;
+
+        unsigned argc = WriteArgs(argv);
+
+        // Required "register saves" space
+        int argvAddr = machine->ReadRegister(STACK_REG) + 16;
+
+        machine->WriteRegister(4, argc);
+        machine->WriteRegister(5, argvAddr);
+    }
+
     machine->Run();
 }
 
@@ -89,7 +104,7 @@ SyscallHandler(ExceptionType _et)
     case SC_EXEC:
     {
         int filenameAddr = machine->ReadRegister(4);
-        int priority = machine->ReadRegister(5);
+        int argvAddr = machine->ReadRegister(5);
         int enableJoin = machine->ReadRegister(6);
 
         if (filenameAddr == 0)
@@ -119,8 +134,14 @@ SyscallHandler(ExceptionType _et)
 
         int spaceId = newThread->SetAddressSpace(newAddrSpace);
 
-        newThread->Fork(runProgram, nullptr);
+        if (argvAddr == 0) {
+            newThread->Fork(runProgram, nullptr);
+        }
+        else {
+            newThread->Fork(runProgram, SaveArgs(argvAddr));
+        }
 
+        DEBUG('d', "Returning space id %d\n", spaceId);
         machine->WriteRegister(2, spaceId);
 
         delete file;
@@ -167,11 +188,10 @@ SyscallHandler(ExceptionType _et)
         if (fileId == -1)
         {
             DEBUG('a', "Error: fileTable of %s is full.\n", currentThread->GetName());
+            machine->WriteRegister(2, -1);
+            break;
         }
-        else
-        {
-            DEBUG('a', "Thread %s open file %s.\n", currentThread->GetName(), filename);
-        }
+        DEBUG('a', "Thread %s open file %s.\n", currentThread->GetName(), filename);
 
         machine->WriteRegister(2, fileId);
 
@@ -183,7 +203,6 @@ SyscallHandler(ExceptionType _et)
 
         if (currentThread->HasFile(fileId))
         {
-
             currentThread->RemoveFile(fileId);
             DEBUG('a', "Close requested for id %u.\n", fileId);
             machine->WriteRegister(2, 1);
@@ -210,31 +229,36 @@ SyscallHandler(ExceptionType _et)
         int size = machine->ReadRegister(5);
         int fileId = machine->ReadRegister(6);
 
-        if (!currentThread->HasFile(fileId))
-        {
-            DEBUG('e', "Error: file %d is not open for current thread.\n", fileId);
-            machine->WriteRegister(2, -1);
-            break;
-        }
-
-        char string[size];
+        char* string = new char[size+1];
         int read = 0;
-        if (fileId != 0)
+        if (fileId != CONSOLE_INPUT)
         {
-
+            if (!currentThread->HasFile(fileId))
+            {
+                DEBUG('e', "Error: file %d is not open for current thread.\n", fileId);
+                machine->WriteRegister(2, -1);
+                delete[] string;
+                break;
+            }
             OpenFile* file = currentThread->GetFile(fileId);
             read = file->Read(string, size);
         }
         else
         {
-            for (int i = 0; i < size; i++)
+            int i;
+            for (i = 0; i < size; i++)
             {
                 string[i] = synchConsole->GetChar();
             }
+            string[i] = '\0';
+            DEBUG('d', "[d] Readed %s\n", string);
             read = size;
         }
+        DEBUG('d', "Writing %d buffer to user, 0x%X", size, bufferAddr);
         WriteBufferToUser(string, bufferAddr, read);
         machine->WriteRegister(2, read);
+
+        delete[] string;
 
         break;
     }
@@ -254,20 +278,21 @@ SyscallHandler(ExceptionType _et)
         int size = machine->ReadRegister(5);
         int fileId = machine->ReadRegister(6);
 
-        if (!currentThread->HasFile(fileId))
-        {
-            DEBUG('e', "Error: file %d is not open for current thread.\n", fileId);
-            machine->WriteRegister(2, -1);
-            break;
-        }
+        char* string = new char[size+1];
 
-        char string[size];
+        DEBUG('d', "Reading %d buffer from user, 0x%X", size, bufferAddr);
         ReadBufferFromUser(bufferAddr, string, size);
 
         int writed = 0;
-        if (fileId != 1)
+        if (fileId != CONSOLE_OUTPUT)
         {
-
+            if (!currentThread->HasFile(fileId))
+            {
+                DEBUG('e', "Error: file %d is not open for current thread.\n", fileId);
+                machine->WriteRegister(2, -1);
+                delete[] string;
+                break;
+            }
             OpenFile* file = currentThread->GetFile(fileId);
             writed = file->Write(string, size);
         }
@@ -280,6 +305,8 @@ SyscallHandler(ExceptionType _et)
             writed = size;
         }
         machine->WriteRegister(2, writed);
+        delete[] string;
+
         break;
     }
     case SC_HALT:
