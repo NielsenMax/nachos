@@ -142,6 +142,7 @@ Initialize(int argc, char **argv)
 #ifdef USER_PROGRAM
     bool debugUserProg = false;  // Single step user program.
     pageMap = new Bitmap(NUM_PHYS_PAGES);
+    userPrograms = new Table<Thread *>();
     // synchConsole = new SynchConsole(NULL, NULL);
 #endif
 #ifdef FILESYS_NEEDED

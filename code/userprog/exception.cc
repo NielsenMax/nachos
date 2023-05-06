@@ -123,8 +123,13 @@ SyscallHandler(ExceptionType _et)
             machine->WriteRegister(2, -1);
             break;
         }
-
+        DEBUG('d', "[d] Filename to be exec %s\n", filename);
         OpenFile* file = fileSystem->Open(filename);
+        if(file == nullptr){
+            DEBUG('e', "Error: file %s to be exec not found\n", filename);
+            machine->WriteRegister(2, -1);
+            break;
+        }
 
         AddressSpace* newAddrSpace = new AddressSpace(file);
         newAddrSpace->InitRegisters(); // Set the initial register values.
