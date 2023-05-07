@@ -8,8 +8,6 @@
 #ifndef NACHOS_THREADS_SYSTEM__HH
 #define NACHOS_THREADS_SYSTEM__HH
 
-#define USER_PROGRAM 1;
-
 #include "thread.hh"
 #include "scheduler.hh"
 #include "lib/utility.hh"
@@ -18,7 +16,7 @@
 #include "machine/timer.hh"
 
 // TODO: borrar.
-// #define USER_PROGRAM 1
+#define USER_PROGRAM 1
 // #define FILESYS_NEEDED 1
 
 /// Initialization and cleanup routines.
@@ -37,8 +35,8 @@ extern Statistics *stats;           ///< Performance metrics.
 extern Timer *timer;                ///< The hardware alarm clock.
 
 #ifdef USER_PROGRAM
-#include "machine/machine.hh"
 #include "userprog/synch_console.hh"
+#include "machine/machine.hh"
 #include "lib/bitmap.hh"
 #include "lib/table.hh"
 

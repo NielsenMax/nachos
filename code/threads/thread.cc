@@ -38,7 +38,7 @@ IsThreadStatus(ThreadStatus s)
 /// `Thread::Fork`.
 ///
 /// * `threadName` is an arbitrary string, useful for debugging.
-Thread::Thread(const char *threadName, bool joinable_, int priority_)
+Thread::Thread(const char* threadName, bool joinable_, int priority_)
 {
     ASSERT(priority_ <= MAX_PRIORITY && priority_ >= 0);
 
@@ -50,7 +50,7 @@ Thread::Thread(const char *threadName, bool joinable_, int priority_)
     stack = nullptr;
     status = JUST_CREATED;
 #ifdef USER_PROGRAM
-    fileTable = new Table<OpenFile *>();
+    fileTable = new Table<OpenFile*>();
     space = nullptr;
 #endif
     channel = new Channel(threadName);
@@ -72,19 +72,19 @@ Thread::~Thread()
     if (stack != nullptr)
     {
         delete channel;
-        SystemDep::DeallocBoundedArray((char *)stack,
-                                       STACK_SIZE * sizeof *stack);
+        SystemDep::DeallocBoundedArray((char*)stack,
+            STACK_SIZE * sizeof * stack);
     }
 #ifdef USER_PROGRAM
     delete fileTable;
-    if(space != nullptr){
+    if (space != nullptr) {
         userPrograms->Remove(spaceId);
         delete space;
     }
 #endif
 }
 
-int Thread::SetAddressSpace(AddressSpace *space_){
+int Thread::SetAddressSpace(AddressSpace* space_) {
     space = space_;
     spaceId = userPrograms->Add(this);
     return spaceId;
@@ -92,7 +92,7 @@ int Thread::SetAddressSpace(AddressSpace *space_){
 
 int Thread::Join()
 {
-    ASSERT(joinable);
+    // ASSERT(joinable);
 
     int result = 0;
     channel->Receive(&result);
@@ -137,18 +137,18 @@ void Thread::ResetPriority()
 ///
 /// * `func` is the procedure to run concurrently.
 /// * `arg` is a single argument to be passed to the procedure.
-void Thread::Fork(VoidFunctionPtr func, void *arg)
+void Thread::Fork(VoidFunctionPtr func, void* arg)
 {
     ASSERT(func != nullptr);
 
     DEBUG('t', "Forking thread \"%s\" with func = %p, arg = %p\n",
-          name, func, arg);
+        name, func, arg);
 
     StackAllocate(func, arg);
 
     IntStatus oldLevel = interrupt->SetLevel(INT_OFF);
     scheduler->ReadyToRun(this); // `ReadyToRun` assumes that interrupts
-                                 // are disabled!
+    // are disabled!
     interrupt->SetLevel(oldLevel);
 }
 
@@ -178,7 +178,7 @@ void Thread::SetStatus(ThreadStatus st)
     status = st;
 }
 
-const char *
+const char*
 Thread::GetName() const
 {
     return name;
@@ -202,12 +202,15 @@ void Thread::Print() const
 /// setting `threadToBeDestroyed`, and going to sleep.
 void Thread::Finish(int _status)
 {
+    DEBUG('t', "Finishing thread \"%s\"\n", GetName());
+    if (joinable) {
+        DEBUG('d', "Thread is joinable\n");
+        channel->Send(_status);
+    }
+
     interrupt->SetLevel(INT_OFF);
     ASSERT(this == currentThread);
 
-    DEBUG('t', "Finishing thread \"%s\"\n", GetName());
-
-    channel->Send(_status);
     threadToBeDestroyed = currentThread;
     Sleep(); // Invokes `SWITCH`.
     // Not reached.
@@ -236,11 +239,11 @@ void Thread::Yield()
 
     DEBUG('t', "Yielding thread \"%s\"\n", GetName());
 
-    Thread *nextThread = scheduler->FindNextToRun();
+    Thread* nextThread = scheduler->FindNextToRun();
     if (nextThread != nullptr)
     {
         DEBUG('b', "Next thread is %s with priority %d\n",
-              nextThread->GetName(), nextThread->GetPriority());
+            nextThread->GetName(), nextThread->GetPriority());
         scheduler->ReadyToRun(this);
         scheduler->Run(nextThread);
     }
@@ -269,7 +272,7 @@ void Thread::Sleep()
 
     DEBUG('t', "Sleeping thread \"%s\"\n", GetName());
 
-    Thread *nextThread;
+    Thread* nextThread;
     status = BLOCKED;
     while ((nextThread = scheduler->FindNextToRun()) == nullptr)
     {
@@ -306,12 +309,12 @@ InterruptEnable()
 ///
 /// * `func` is the procedure to be forked.
 /// * `arg` is the parameter to be passed to the procedure.
-void Thread::StackAllocate(VoidFunctionPtr func, void *arg)
+void Thread::StackAllocate(VoidFunctionPtr func, void* arg)
 {
     ASSERT(func != nullptr);
 
-    stack = (uintptr_t *)
-        SystemDep::AllocBoundedArray(STACK_SIZE * sizeof *stack);
+    stack = (uintptr_t*)
+        SystemDep::AllocBoundedArray(STACK_SIZE * sizeof * stack);
 
     // Stacks in x86 work from high addresses to low addresses.
     stackTop = stack + STACK_SIZE - 4; // -4 to be on the safe side!
@@ -335,10 +338,10 @@ void Thread::StackAllocate(VoidFunctionPtr func, void *arg)
 
 void Thread::RemoveFile(int fileId)
 {
-    OpenFile *file = fileTable->Remove(fileId);
+    OpenFile* file = fileTable->Remove(fileId);
     delete file;
 }
-int Thread::AddFile(OpenFile *file)
+int Thread::AddFile(OpenFile* file)
 {
     return fileTable->Add(file);
 }
@@ -346,7 +349,7 @@ bool Thread::HasFile(int fileId)
 {
     return fileTable->HasKey(fileId);
 }
-OpenFile *Thread::GetFile(int fileId)
+OpenFile* Thread::GetFile(int fileId)
 {
     return fileTable->Get(fileId);
 }
