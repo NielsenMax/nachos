@@ -59,8 +59,8 @@ DefaultHandler(ExceptionType et)
 }
 
 void runProgram(void* argv_) {
-    // currentThread->space->InitRegisters(); // Set the initial register values.
-    // currentThread->space->RestoreState();  // Load page table register.
+    currentThread->space->InitRegisters(); // Set the initial register values.
+    currentThread->space->RestoreState();  // Load page table register.
 
     if (argv_ != nullptr) {
         char** argv = (char**)argv_;
@@ -131,8 +131,8 @@ SyscallHandler(ExceptionType _et)
         }
 
         AddressSpace* newAddrSpace = new AddressSpace(file);
-        newAddrSpace->InitRegisters(); // Set the initial register values.
-        newAddrSpace->RestoreState();  // Load page table register.
+        // newAddrSpace->InitRegisters(); // Set the initial register values.
+        // newAddrSpace->RestoreState();  // Load page table register.
 
         Thread* newThread = new Thread(filename, bool(enableJoin), currentThread->GetPriority());
 
@@ -361,11 +361,9 @@ SyscallHandler(ExceptionType _et)
     case SC_EXIT:
     {
         int status = machine->ReadRegister(4);
-        DEBUG('d', "Finishing thread with status %d\n", status);
+        DEBUG('d', "Finishing thread %s with status %d\n", currentThread->GetName(), status);
         currentThread->Finish(status);
-
-        DEBUG('e', "Finish thread %s with status %d\n", currentThread->GetName(), status);
-
+        DEBUG('e', "Thread finished.\n");
         break;
     }
 
@@ -401,6 +399,12 @@ SyscallHandler(ExceptionType _et)
             machine->WriteRegister(2, -1);
         }
 
+        break;
+    }
+
+    case SC_PS:
+    {
+        scheduler->Print();
         break;
     }
 
