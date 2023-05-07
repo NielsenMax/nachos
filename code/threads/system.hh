@@ -8,8 +8,6 @@
 #ifndef NACHOS_THREADS_SYSTEM__HH
 #define NACHOS_THREADS_SYSTEM__HH
 
-#define USER_PROGRAM 1;
-
 #include "thread.hh"
 #include "scheduler.hh"
 #include "lib/utility.hh"
