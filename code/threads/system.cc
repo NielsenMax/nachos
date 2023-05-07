@@ -34,7 +34,7 @@ Timer* timer;                 ///< The hardware timer device, for invoking
 PreemptiveScheduler* preemptiveScheduler = nullptr;
 const long long DEFAULT_TIME_SLICE = 50000;
 
-#define FILESYS_NEEDED 1 
+// #define FILESYS_NEEDED 1 
 
 #ifdef FILESYS_NEEDED
 FileSystem* fileSystem;
@@ -246,7 +246,7 @@ Initialize(int argc, char** argv)
 #ifdef USER_PROGRAM
 #ifdef TIME_SLICING
     if (!randomYield) {
-        timer = new Timer(TimerInterruptHandler, 0, false)
+        timer = new Timer(TimerInterruptHandler, 0, false);
     }
 #endif
     Debugger* d = debugUserProg ? new Debugger : nullptr;

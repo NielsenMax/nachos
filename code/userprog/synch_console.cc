@@ -1,7 +1,5 @@
 #include "synch_console.hh"
 
-// #include <stdio.h>
-
 static void
 ReadAvailProxy(void *args)
 {

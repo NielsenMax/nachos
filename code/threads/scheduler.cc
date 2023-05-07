@@ -20,6 +20,10 @@
 #include "scheduler.hh"
 #include "system.hh"
 
+#ifdef USER_PROGRAM
+#include "userprog/address_space.hh"
+#endif
+
 #include <stdio.h>
 
 /// Initialize the list of ready but not running threads to empty.

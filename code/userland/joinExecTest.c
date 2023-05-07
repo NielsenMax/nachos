@@ -13,12 +13,15 @@
 int
 main(void)
 {
+    Write("Calling exec\n", 13, CONSOLE_OUTPUT);
     SpaceId thread = Exec("../userland/auxTest", 0, 1);
+    Write("Returning from the exec\n", 24, CONSOLE_OUTPUT);
 
     if(thread < 0){
         Write("Error creating thread\n", 22, CONSOLE_OUTPUT);
         Halt();
     }
+    Write("Thread created\n", 15, CONSOLE_OUTPUT);
     Join(thread);
 
     OpenFileId o = Open("./test.txt");

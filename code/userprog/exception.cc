@@ -53,7 +53,6 @@ static void
 DefaultHandler(ExceptionType et)
 {
     int exceptionArg = machine->ReadRegister(2);
-
     fprintf(stderr, "Unexpected user mode exception: %s, arg %d.\n",
         ExceptionTypeToString(et), exceptionArg);
     ASSERT(false);
@@ -114,9 +113,9 @@ SyscallHandler(ExceptionType _et)
             break;
         }
 
-        char filename[FILE_NAME_MAX_LEN + 1];
+        char *filename = new char[FILE_NAME_MAX_LEN + 1];
         if (!ReadStringFromUser(filenameAddr,
-            filename, sizeof filename))
+            filename, FILE_NAME_MAX_LEN))
         {
             DEBUG('e', "Error: filename string too long (maximum is %u bytes).\n",
                 FILE_NAME_MAX_LEN);
@@ -150,14 +149,17 @@ SyscallHandler(ExceptionType _et)
         machine->WriteRegister(2, spaceId);
 
         delete file;
+        DEBUG('d', "Returning from exec\n");
 
         break;
     }
     case SC_JOIN:
     {
         int spaceId = machine->ReadRegister(4);
+            DEBUG('d', "Join to %d was called\n", spaceId);
 
         if (userPrograms->HasKey(spaceId)) {
+            DEBUG('d', "The user program %d exists\n", spaceId);
             Thread* programThread = userPrograms->Get(spaceId);
             int returnCode = programThread->Join();
             machine->WriteRegister(2, returnCode);
@@ -259,7 +261,6 @@ SyscallHandler(ExceptionType _et)
             DEBUG('d', "[d] Readed %s\n", string);
             read = size;
         }
-        DEBUG('d', "Writing %d buffer to user, 0x%X", size, bufferAddr);
         WriteBufferToUser(string, bufferAddr, read);
         machine->WriteRegister(2, read);
 
@@ -285,7 +286,6 @@ SyscallHandler(ExceptionType _et)
 
         char* string = new char[size+1];
 
-        DEBUG('d', "Reading %d buffer from user, 0x%X", size, bufferAddr);
         ReadBufferFromUser(bufferAddr, string, size);
 
         int writed = 0;
@@ -361,6 +361,7 @@ SyscallHandler(ExceptionType _et)
     case SC_EXIT:
     {
         int status = machine->ReadRegister(4);
+        DEBUG('d', "Finishing thread with status %d\n", status);
         currentThread->Finish(status);
 
         DEBUG('e', "Finish thread %s with status %d\n", currentThread->GetName(), status);
