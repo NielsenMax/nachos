@@ -146,6 +146,7 @@ int main(int argc, char **argv)
             ASSERT(argc > 1);
             synchConsole = new SynchConsole(nullptr, nullptr);
             StartProcess(*(argv + 1));
+            DEBUG('d', "\n\nStart process ended\n\n");
             argCount = 2;
         }
         else if (!strcmp(*argv, "-tc"))

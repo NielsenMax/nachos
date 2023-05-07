@@ -15,6 +15,7 @@ main(void)
 {
     Write("Calling exec\n", 13, CONSOLE_OUTPUT);
     SpaceId thread = Exec("../userland/auxTest", 0, 1);
+    // Join(Exec("../userland/auxTest", 0, 1));
     Write("Returning from the exec\n", 24, CONSOLE_OUTPUT);
 
     if(thread < 0){

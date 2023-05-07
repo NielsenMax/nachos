@@ -59,8 +59,8 @@ DefaultHandler(ExceptionType et)
 }
 
 void runProgram(void* argv_) {
-    currentThread->space->InitRegisters(); // Set the initial register values.
-    currentThread->space->RestoreState();  // Load page table register.
+    // currentThread->space->InitRegisters(); // Set the initial register values.
+    // currentThread->space->RestoreState();  // Load page table register.
 
     if (argv_ != nullptr) {
         char** argv = (char**)argv_;
