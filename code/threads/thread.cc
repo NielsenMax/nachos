@@ -51,6 +51,11 @@ Thread::Thread(const char* threadName, bool joinable_, int priority_)
     status = JUST_CREATED;
 #ifdef USER_PROGRAM
     fileTable = new Table<OpenFile*>();
+    // Reserver the entry 0 and 1 for the console
+    for(int i = 0; i < 2; i++){
+        fileTable -> Add(nullptr);
+    }
+
     space = nullptr;
 #endif
     channel = new Channel(threadName);
