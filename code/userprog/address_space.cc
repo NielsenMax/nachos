@@ -143,7 +143,7 @@ AddressSpace::TranslateVirtualAddrToPhysicalAddr(uint32_t virtualAddr, uint32_t*
 /// Nothing for now!
 AddressSpace::~AddressSpace()
 {
-    for (unsigned i = 0; i <= numPages; i++)
+    for (unsigned i = 0; i < numPages; i++)
     {
         pageMap->Clear(pageTable[i].physicalPage);
     }
