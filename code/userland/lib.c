@@ -47,5 +47,5 @@ void itoa(int n, char *str)
   }
 
   str[i] = '\0';
-  reverse(str, i);
+  reverse_lib(str, i);
 }

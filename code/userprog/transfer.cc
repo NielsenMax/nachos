@@ -48,11 +48,12 @@ void WriteBufferToUser(const char *buffer, int userAddress,
 {
     ASSERT(userAddress != 0);
     ASSERT(buffer != nullptr);
-    ASSERT(byteCount != 0);
-
-    for (unsigned count = 0; count < byteCount; count++)
+    if (byteCount != 0)
     {
-        ASSERT(machine->WriteMem(userAddress++, 1, buffer[count]));
+        for (unsigned count = 0; count < byteCount; count++)
+        {
+            ASSERT(machine->WriteMem(userAddress++, 1, buffer[count]));
+        }
     }
 }
 
