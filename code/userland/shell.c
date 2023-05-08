@@ -148,6 +148,11 @@ int main(void)
             Join(newProc);
         }
 
+        if (!is_bg)
+        {
+            Join(newProc);
+        }
+
         // TODO: check for errors when calling `Exec`; this depends on how
         //       errors are reported.
 
