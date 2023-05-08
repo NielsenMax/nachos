@@ -56,7 +56,7 @@ DefaultHandler(ExceptionType et)
 {
     int exceptionArg = machine->ReadRegister(2);
     fprintf(stderr, "Unexpected user mode exception: %s, arg %d.\n",
-        ExceptionTypeToString(et), exceptionArg);
+            ExceptionTypeToString(et), exceptionArg);
     ASSERT(false);
 }
 
@@ -122,10 +122,10 @@ SyscallHandler(ExceptionType _et)
 
         char* filename = new char[FILE_NAME_MAX_LEN + 1];
         if (!ReadStringFromUser(filenameAddr,
-            filename, FILE_NAME_MAX_LEN))
+                                filename, FILE_NAME_MAX_LEN))
         {
             DEBUG('e', "Error: filename string too long (maximum is %u bytes).\n",
-                FILE_NAME_MAX_LEN);
+                  FILE_NAME_MAX_LEN);
             machine->WriteRegister(2, -1);
             break;
         }
@@ -138,11 +138,11 @@ SyscallHandler(ExceptionType _et)
             break;
         }
 
-        AddressSpace* newAddrSpace = new AddressSpace(file);
+        AddressSpace *newAddrSpace = new AddressSpace(file);
         // newAddrSpace->InitRegisters(); // Set the initial register values.
         // newAddrSpace->RestoreState();  // Load page table register.
 
-        Thread* newThread = new Thread(filename, bool(enableJoin), currentThread->GetPriority());
+        Thread *newThread = new Thread(filename, bool(enableJoin), currentThread->GetPriority());
 
         int spaceId = newThread->SetAddressSpace(newAddrSpace);
 
@@ -192,9 +192,10 @@ SyscallHandler(ExceptionType _et)
     {
         int spaceId = machine->ReadRegister(4);
 
-        if (userPrograms->HasKey(spaceId)) {
+        if (userPrograms->HasKey(spaceId))
+        {
             DEBUG('d', "The user program %d exists\n", spaceId);
-            Thread* programThread = userPrograms->Get(spaceId);
+            Thread *programThread = userPrograms->Get(spaceId);
             int returnCode = programThread->Join();
             machine->WriteRegister(2, returnCode);
             break;
@@ -215,10 +216,10 @@ SyscallHandler(ExceptionType _et)
 
         char filename[FILE_NAME_MAX_LEN + 1];
         if (!ReadStringFromUser(filenameAddr,
-            filename, sizeof filename))
+                                filename, sizeof filename))
         {
             DEBUG('e', "Error: filename string too long (maximum is %u bytes).\n",
-                FILE_NAME_MAX_LEN);
+                  FILE_NAME_MAX_LEN);
             machine->WriteRegister(2, -1);
             break;
         }
@@ -313,7 +314,7 @@ SyscallHandler(ExceptionType _et)
                 delete[] string;
                 break;
             }
-            OpenFile* file = currentThread->GetFile(fileId);
+            OpenFile *file = currentThread->GetFile(fileId);
             read = file->Read(string, size);
         }
         else
@@ -380,7 +381,7 @@ SyscallHandler(ExceptionType _et)
                 delete[] string;
                 break;
             }
-            OpenFile* file = currentThread->GetFile(fileId);
+            OpenFile *file = currentThread->GetFile(fileId);
             writed = file->Write(string, size);
         }
         else
@@ -415,10 +416,10 @@ SyscallHandler(ExceptionType _et)
 
         char filename[FILE_NAME_MAX_LEN + 1];
         if (!ReadStringFromUser(filenameAddr,
-            filename, sizeof filename))
+                                filename, sizeof filename))
         {
             DEBUG('e', "Error: filename string too long (maximum is %u bytes).\n",
-                FILE_NAME_MAX_LEN);
+                  FILE_NAME_MAX_LEN);
             machine->WriteRegister(2, -1);
             break;
         }
@@ -461,10 +462,10 @@ SyscallHandler(ExceptionType _et)
 
         char filename[FILE_NAME_MAX_LEN + 1];
         if (!ReadStringFromUser(filenameAddr,
-            filename, sizeof filename))
+                                filename, sizeof filename))
         {
             DEBUG('e', "Error: filename string too long (maximum is %u bytes).\n",
-                FILE_NAME_MAX_LEN);
+                  FILE_NAME_MAX_LEN);
             machine->WriteRegister(2, -1);
             break;
         }
