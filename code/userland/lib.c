@@ -1,7 +1,7 @@
 #include "syscall.h"
 
 unsigned
-strlen(const char *s)
+strlen_lib(const char *s)
 {
   unsigned i;
   for (i = 0; s[i] != '\0'; i++)
@@ -12,7 +12,7 @@ strlen(const char *s)
 
 void puts_lib(const char *s)
 {
-  Write(s, strlen(s), CONSOLE_OUTPUT);
+  Write(s, strlen_lib(s), CONSOLE_OUTPUT);
   Write("\n", 1, CONSOLE_OUTPUT);
 }
 
