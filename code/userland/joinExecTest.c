@@ -25,7 +25,7 @@ main(void)
     Write("Thread created\n", 15, CONSOLE_OUTPUT);
     Join(thread);
 
-    OpenFileId o = Open("./test.txt");
+    OpenFileId o = Open("../userland/test.txt");
     if(o < 0){
         Write("Error file didnt exists\n", 24, CONSOLE_OUTPUT);
         Halt();
