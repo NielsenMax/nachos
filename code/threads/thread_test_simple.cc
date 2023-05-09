@@ -24,7 +24,6 @@ public:
     };
     ~ThreadState()
     {
-        delete name;
         delete semaphore;
     };
     char *GetName() { return name; };
