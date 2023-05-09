@@ -45,7 +45,7 @@ class SynchConsole;
 extern Machine *machine; // User program memory and registers.
 extern SynchConsole *synchConsole; // Console used in syscall testing
 extern Bitmap *pageMap;
-extern Table<Thread*> *userPrograms;
+extern Table<Thread*> *threadsTable;
 
 #endif
 

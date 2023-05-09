@@ -50,7 +50,7 @@ Thread::Thread(const char *threadName, bool joinable_, int priority_)
     stack = nullptr;
     status = JUST_CREATED;
 #ifdef USER_PROGRAM
-    spaceId = userPrograms->Add(this);
+    spaceId = threadsTable->Add(this);
     fileTable = new Table<OpenFile *>();
     // Reserver the entry 0 and 1 for the console
     for (int i = 0; i < 2; i++)
@@ -94,9 +94,9 @@ Thread::~Thread()
     }
 #ifdef USER_PROGRAM
     delete fileTable;
+    threadsTable->Remove(spaceId);
     if (space != nullptr)
     {
-        userPrograms->Remove(spaceId);
         delete space;
     }
 #endif
