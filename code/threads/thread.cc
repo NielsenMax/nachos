@@ -100,13 +100,17 @@ Thread::~Thread()
         delete space;
     }
 #endif
+    delete [] name;
 }
 
+#ifdef USER_PROGRAM
 int Thread::SetAddressSpace(AddressSpace *space_)
 {
     space = space_;
     return spaceId;
 }
+#endif
+
 
 int Thread::Join()
 {
