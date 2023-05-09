@@ -48,7 +48,7 @@ SynchDisk* synchDisk;
 Machine* machine;  ///< User program memory and registers.
 SynchConsole* synchConsole;
 Bitmap* pageMap;
-Table<Thread*>* userPrograms;
+Table<Thread*>* threadsTable;
 #endif
 
 #ifdef NETWORK
@@ -146,7 +146,7 @@ Initialize(int argc, char** argv)
 #ifdef USER_PROGRAM
     bool debugUserProg = false;  // Single step user program.
     pageMap = new Bitmap(NUM_PHYS_PAGES);
-    userPrograms = new Table<Thread*>();
+    threadsTable = new Table<Thread*>();
     // synchConsole = new SynchConsole(NULL, NULL);
 #endif
 #ifdef FILESYS_NEEDED
@@ -283,7 +283,7 @@ Cleanup()
 #ifdef USER_PROGRAM
     delete machine;
     delete synchConsole;
-    delete userPrograms;
+    delete threadsTable;
 #endif
 
 #ifdef FILESYS_NEEDED

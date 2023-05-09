@@ -166,10 +166,10 @@ SyscallHandler(ExceptionType _et)
         int spaceId = machine->ReadRegister(4);
         DEBUG('d', "Join to %d was called\n", spaceId);
 
-        if (userPrograms->HasKey(spaceId))
+        if (threadsTable->HasKey(spaceId))
         {
             DEBUG('d', "The user program %d exists\n", spaceId);
-            Thread *programThread = userPrograms->Get(spaceId);
+            Thread *programThread = threadsTable->Get(spaceId);
             int returnCode = programThread->Join();
             machine->WriteRegister(2, returnCode);
             break;
