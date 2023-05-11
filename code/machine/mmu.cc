@@ -79,6 +79,17 @@ MMU::PrintTLB() const
 #endif
 }
 
+void
+MMU::InvalidateTLB()
+{
+    ASSERT(tlb != nullptr);
+    for (unsigned i = 0; i < TLB_SIZE; i++)
+    {
+        tlb[i].valid = false;
+    }
+    
+}
+
 /// Read `size` (1, 2, or 4) bytes of virtual memory at `addr` into
 /// the location pointed to by `value`.
 ///

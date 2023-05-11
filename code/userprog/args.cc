@@ -24,7 +24,10 @@ static inline bool CountArgsToSave(int address, unsigned *count)
     unsigned c = 0;
     do
     {
-        machine->ReadMem(address + 4 * c, 4, &val);
+        for (unsigned i = 0; (i < MAX_MMU_RETIRES) && !machine->ReadMem(address + 4 * c, 4, &val); i++)
+        {
+        }
+        // machine->ReadMem(address + 4 * c, 4, &val);
         c++;
     } while (c < MAX_ARG_COUNT && val != 0);
     if (c == MAX_ARG_COUNT && val != 0)
@@ -61,7 +64,10 @@ SaveArgs(int address)
         args[i] = new char[MAX_ARG_LENGTH];
         int strAddr;
         // For each pointer, read the corresponding string.
-        machine->ReadMem(address + i * 4, 4, &strAddr);
+        for (unsigned j = 0; (j < MAX_MMU_RETIRES) & !machine->ReadMem(address + i * 4, 4, &strAddr); j++)
+        {
+        }
+        // machine->ReadMem(address + i * 4, 4, &strAddr);
         ReadStringFromUser(strAddr, args[i], MAX_ARG_LENGTH);
 
         DEBUG('e', "Reading argument %s.\n",
@@ -106,9 +112,15 @@ WriteArgs(char **args)
     // Write each argument's address.
     for (unsigned i = 0; i < c; i++)
     {
-        machine->WriteMem(sp + 4 * i, 4, argsAddress[i]);
+        for (unsigned j = 0; (j < MAX_MMU_RETIRES) & !machine->WriteMem(sp + 4 * i, 4, argsAddress[i]); j++)
+        {
+        }
+        // machine->WriteMem(sp + 4 * i, 4, argsAddress[i]);
     }
-    machine->WriteMem(sp + 4 * c, 4, 0); // The last is null.
+    for (unsigned i = 0;( i < MAX_MMU_RETIRES) & !machine->WriteMem(sp + 4 * c, 4, 0); i++)
+    {
+    }
+    // machine->WriteMem(sp + 4 * c, 4, 0); // The last is null.
 
     machine->WriteRegister(STACK_REG, sp);
     return c;
