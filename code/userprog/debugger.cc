@@ -205,6 +205,7 @@ CommandPrint(char **args, void *extra)
 
         if (strcmp(end, "@v") == 0 || *end == '\0') {
             int c;
+            // TODO: Deberiamos tenerlo en cuenta aca a los fallos de la TLB???
             ExceptionType e = machine->GetMMU()->ReadMem(address, 1, &c);
             if (e == NO_EXCEPTION) {
                 PrintChar(c);
