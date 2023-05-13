@@ -28,6 +28,8 @@
 
 #include <stdio.h>
 
+#define USE_TLB 1
+
 static void
 IncrementPC()
 {
@@ -425,6 +427,7 @@ SyscallHandler(ExceptionType _et)
     IncrementPC();
 }
 
+#ifdef USE_TLB
 int TLB_FIFO = 0;
 
 static void
@@ -439,6 +442,11 @@ PageFaultExceptionHanlder(ExceptionType et)
     TranslationEntry *spaceEntry = &currentThread->space->pageTable[virtualPage];
     TranslationEntry *tlbEntry = &machine->GetMMU()->tlb[tlbEntryIndex];
 
+    if (spaceEntry->physicalPage == -1)
+    {
+        spaceEntry = currentThread->space->LoadPage(virtualAddr);
+    }
+
     tlbEntry->valid = spaceEntry->valid;
     tlbEntry->virtualPage = virtualPage;
     tlbEntry->physicalPage = spaceEntry->physicalPage;
@@ -450,6 +458,14 @@ PageFaultExceptionHanlder(ExceptionType et)
 
     TLB_FIFO = (TLB_FIFO + 1) % TLB_SIZE;
 }
+
+static void
+ReadOnlyHandler(ExceptionType _et)
+{
+    currentThread->Finish(-1);
+}
+#endif
+
 /// By default, only system calls have their own handler.  All other
 /// exception types are assigned the default handler.
 void SetExceptionHandlers()
@@ -458,7 +474,7 @@ void SetExceptionHandlers()
     machine->SetHandler(SYSCALL_EXCEPTION, &SyscallHandler);
 #ifdef USE_TLB
     machine->SetHandler(PAGE_FAULT_EXCEPTION, &PageFaultExceptionHanlder);
-    machine->SetHandler(READ_ONLY_EXCEPTION, &DefaultHandler);
+    machine->SetHandler(READ_ONLY_EXCEPTION, &ReadOnlyHandler);
 #else
     machine->SetHandler(PAGE_FAULT_EXCEPTION, &DefaultHandler);
     machine->SetHandler(READ_ONLY_EXCEPTION, &DefaultHandler);

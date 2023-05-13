@@ -44,6 +44,8 @@ public:
     void SaveState();
     void RestoreState();
 
+    TranslationEntry *LoadPage(unsigned virtualAddr);
+
     unsigned TranslateVirtualAddrToPhysicalAddr(unsigned virtualAddr, unsigned *virtualPagePointer = nullptr);
     TranslationEntry *pageTable;
 
@@ -51,6 +53,7 @@ private:
     /// Assume linear page table translation for now!
 
     /// Number of pages in the virtual address space.
+    OpenFile *executable_file;
     unsigned numPages;
 };
 

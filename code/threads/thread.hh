@@ -40,7 +40,7 @@
 
 #include "lib/utility.hh"
 
-// #define USER_PROGRAM 1
+#define USER_PROGRAM 1
 
 #ifdef USER_PROGRAM
 #include "machine/machine.hh"
