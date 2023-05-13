@@ -519,6 +519,11 @@ PageFaultExceptionHanlder(ExceptionType et)
 
     TranslationEntry *tlbEntry = &machine->GetMMU()->tlb[tlbEntryIndex];
 
+    if (spaceEntry->physicalPage == -1)
+    {
+        spaceEntry = currentThread->space->LoadPage(virtualAddr);
+    }
+
     tlbEntry->valid = spaceEntry->valid;
     tlbEntry->virtualPage = virtualPage;
     tlbEntry->physicalPage = spaceEntry->physicalPage;

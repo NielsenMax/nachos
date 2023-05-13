@@ -90,6 +90,9 @@ public:
 
 private:
 
+    unsigned numberOfMemoryRetrieves;
+    unsigned numberOfTLBHits;
+    bool TLBFailed;
     /// Retrieve a page entry either from a page table or the TLB.
     ExceptionType RetrievePageEntry(unsigned vpn,
                                     TranslationEntry **entry);
