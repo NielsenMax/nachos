@@ -16,9 +16,11 @@
 /// First, set up the translation from program memory to physical memory.
 /// For now, this is really simple (1:1), since we are only uniprogramming,
 /// and we have a single unsegmented page table.
-AddressSpace::AddressSpace(OpenFile* executable_file)
+AddressSpace::AddressSpace(OpenFile *_executable_file)
 {
     ASSERT(executable_file != nullptr);
+
+    executable_file = _executable_file;
 
     Executable exe(executable_file);
     ASSERT(exe.CheckMagic());
@@ -35,16 +37,20 @@ AddressSpace::AddressSpace(OpenFile* executable_file)
     // have virtual memory.
 
     DEBUG('a', "Initializing address space, num pages %u, size %u\n",
-        numPages, size);
+          numPages, size);
 
     // First, set up the translation.
 
     pageTable = new TranslationEntry[numPages];
     for (unsigned i = 0; i < numPages; i++)
     {
-        pageTable[i].virtualPage = i;
-        // For now, virtual page number = physical page number.
+
+#ifdef DEMAND_LOADING
+        pageTable[i].physicalPage = -1;
+#else
         pageTable[i].physicalPage = pageMap->Find();
+#endif
+        pageTable[i].virtualPage = i;
         pageTable[i].valid = true;
         pageTable[i].use = false;
         pageTable[i].dirty = false;
@@ -53,8 +59,9 @@ AddressSpace::AddressSpace(OpenFile* executable_file)
         // set its pages to be read-only.
     }
 
-    char* mainMemory = machine->GetMMU()->mainMemory;
+    char *mainMemory = machine->GetMMU()->mainMemory;
 
+#ifndef DEMAND_LOADING
     // Zero out the entire address space, to zero the unitialized data
     // segment and the stack segment.
     for (unsigned i = 0; i < numPages; i++)
@@ -80,14 +87,15 @@ AddressSpace::AddressSpace(OpenFile* executable_file)
             uint32_t virtualPage;
             uint32_t physicalAddr = TranslateVirtualAddrToPhysicalAddr(virtualAddr, &virtualPage);
 
-            if (i + 1 < numCodePages) {
+            if (i + 1 < numCodePages)
+            {
                 pageTable[virtualPage].readOnly = true;
             }
 
             uint32_t toRead = leftOverSize < PAGE_SIZE ? leftOverSize : PAGE_SIZE;
 
             DEBUG('a', "Initializing code segment, at virtual address 0x%X, physical address 0x%X size %u\n",
-                virtualAddr, physicalAddr, toRead);
+                  virtualAddr, physicalAddr, toRead);
 
             exe.ReadCodeBlock(&mainMemory[physicalAddr], toRead, codeOffset);
             codeOffset += toRead;
@@ -113,7 +121,7 @@ AddressSpace::AddressSpace(OpenFile* executable_file)
             uint32_t toRead = leftOverSize < PAGE_SIZE ? leftOverSize : PAGE_SIZE;
 
             DEBUG('a', "Initializing data segment, at virtual address 0x%X, physical address 0x%X size %u\n",
-                virtualAddr, physicalAddr, toRead);
+                  virtualAddr, physicalAddr, toRead);
 
             exe.ReadDataBlock(&mainMemory[physicalAddr], toRead, dataOffset);
             dataOffset += toRead;
@@ -121,10 +129,11 @@ AddressSpace::AddressSpace(OpenFile* executable_file)
             virtualAddr += toRead;
         };
     }
+#endif
 }
 
 uint32_t
-AddressSpace::TranslateVirtualAddrToPhysicalAddr(uint32_t virtualAddr, uint32_t* virtualPagePointer)
+AddressSpace::TranslateVirtualAddrToPhysicalAddr(uint32_t virtualAddr, uint32_t *virtualPagePointer)
 {
     uint32_t virtualPage = DivRoundDown(virtualAddr, PAGE_SIZE);
     uint32_t pageOffset = virtualAddr % PAGE_SIZE;
@@ -151,6 +160,54 @@ AddressSpace::~AddressSpace()
     delete[] pageTable;
 }
 
+TranslationEntry *AddressSpace::LoadPage(unsigned virtualAddr)
+{
+    uint32_t virtualPage = DivRoundDown(virtualAddr, PAGE_SIZE);
+    TranslationEntry translationEntry = pageTable[virtualPage];
+
+    if (translationEntry.physicalPage != -1)
+    {
+        return &translationEntry;
+    }
+
+    uint32_t physicalPage = pageMap->Find();
+    translationEntry.physicalPage = physicalPage;
+
+    Executable exe(executable_file);
+    uint32_t codeSize = exe.GetCodeSize();
+    uint32_t initDataSize = exe.GetInitDataSize();
+    char *mainMemory = machine->GetMMU()->mainMemory;
+
+    if (virtualAddr * PAGE_SIZE > codeSize + initDataSize)
+    {
+        memset(mainMemory + physicalPage * PAGE_SIZE, 0, PAGE_SIZE);
+    }
+    else if (virtualAddr * PAGE_SIZE > initDataSize)
+    {
+        uint32_t initialDataVirtualAddr = exe.GetInitDataAddr();
+        unsigned dataOffset = virtualAddr - initialDataVirtualAddr;
+        uint32_t toRead = initDataSize - dataOffset;
+
+        uint32_t physicalAddr = TranslateVirtualAddrToPhysicalAddr(virtualAddr, nullptr);
+        translationEntry.readOnly = false;
+        exe.ReadDataBlock(&mainMemory[physicalAddr], toRead, dataOffset);
+    }
+    else
+    {
+        uint32_t initialCodeVirtualAddr = exe.GetCodeAddr();
+        unsigned dataOffset = virtualAddr - initialCodeVirtualAddr;
+        uint32_t toRead = initDataSize - dataOffset;
+
+        uint32_t physicalAddr = TranslateVirtualAddrToPhysicalAddr(virtualAddr, nullptr);
+
+        // TODO: we should set this to true, but we need to know if this is shared with
+        translationEntry.readOnly = false;
+        exe.ReadDataBlock(&mainMemory[physicalAddr], toRead, dataOffset);
+    }
+
+    return &pageTable[virtualPage];
+};
+
 /// Set the initial values for the user-level register set.
 ///
 /// We write these directly into the “machine” registers, so that we can
@@ -176,7 +233,7 @@ void AddressSpace::InitRegisters()
     // accidentally reference off the end!
     machine->WriteRegister(STACK_REG, numPages * PAGE_SIZE - 16);
     DEBUG('a', "Initializing stack register to %u\n",
-        numPages * PAGE_SIZE - 16);
+          numPages * PAGE_SIZE - 16);
 }
 
 /// On a context switch, save any machine state, specific to this address
@@ -193,10 +250,10 @@ void AddressSpace::SaveState()
 /// For now, tell the machine where to find the page table.
 void AddressSpace::RestoreState()
 {
-    #ifdef USE_TLB
+#ifdef USE_TLB
     machine->GetMMU()->InvalidateTLB();
-    #else  // Use linear page table.
+#else // Use linear page table.
     machine->GetMMU()->pageTable = pageTable;
     machine->GetMMU()->pageTableSize = numPages;
-    #endif
+#endif
 }
