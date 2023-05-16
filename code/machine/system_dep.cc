@@ -107,6 +107,7 @@ OpenForWrite(const char *name)
 {
     ASSERT(name != nullptr);
     int fd = open(name, O_RDWR | O_CREAT | O_TRUNC, 0666);
+    DEBUG('d', "File name %s", name);
     ASSERT(fd >= 0);
     return fd;
 }

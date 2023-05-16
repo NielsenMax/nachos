@@ -115,7 +115,7 @@ SyscallHandler(ExceptionType _et)
 
         if (filenameAddr == 0)
         {
-            DEBUG('e', "Error: address to filename string is null.\n");
+            DEBUG('e', "1Error: address to filename string is null.\n");
             machine->WriteRegister(2, -1);
             break;
         }
@@ -166,7 +166,7 @@ SyscallHandler(ExceptionType _et)
         DEBUG('d', "Returning space id %d\n", spaceId);
         machine->WriteRegister(2, spaceId);
 
-        delete file;
+        // delete file;
         DEBUG('d', "Returning from exec\n");
 
         break;
@@ -193,7 +193,7 @@ SyscallHandler(ExceptionType _et)
         int filenameAddr = machine->ReadRegister(4);
         if (filenameAddr == 0)
         {
-            DEBUG('e', "Error: address to filename string is null.\n");
+            DEBUG('e', "2Error: address to filename string is null.\n");
             machine->WriteRegister(2, -1);
             break;
         }
@@ -260,7 +260,7 @@ SyscallHandler(ExceptionType _et)
         int bufferAddr = machine->ReadRegister(4);
         if (bufferAddr == 0)
         {
-            DEBUG('e', "Error: address to filename string is null.\n");
+            DEBUG('e', "Error: .\n");
             machine->WriteRegister(2, -1);
             break;
         }
@@ -324,7 +324,7 @@ SyscallHandler(ExceptionType _et)
         int bufferAddr = machine->ReadRegister(4);
         if (bufferAddr == 0)
         {
-            DEBUG('e', "Error: address to filename string is null.\n");
+            DEBUG('e', "3Error: address to filename string is null.\n");
             machine->WriteRegister(2, -1);
             break;
         }
@@ -393,7 +393,7 @@ SyscallHandler(ExceptionType _et)
         int filenameAddr = machine->ReadRegister(4);
         if (filenameAddr == 0)
         {
-            DEBUG('e', "Error: address to filename string is null.\n");
+            DEBUG('e', "4Error: address to filename string is null.\n");
             machine->WriteRegister(2, -1);
             break;
         }
@@ -439,7 +439,7 @@ SyscallHandler(ExceptionType _et)
         int filenameAddr = machine->ReadRegister(4);
         if (filenameAddr == 0)
         {
-            DEBUG('e', "Error: address to filename string is null.\n");
+            DEBUG('e', "5Error: address to filename string is null.\n");
             machine->WriteRegister(2, -1);
             break;
         }
@@ -495,13 +495,8 @@ PageFaultExceptionHanlder(ExceptionType et)
     currentThread->space->TranslateVirtualAddrToPhysicalAddr(virtualAddr, &virtualPage);
     unsigned tlbEntryIndex = TLB_FIFO;
 
-    TranslationEntry *spaceEntry = &currentThread->space->pageTable[virtualPage];
+    TranslationEntry *spaceEntry = currentThread->space->LoadPage(virtualAddr);
     TranslationEntry *tlbEntry = &machine->GetMMU()->tlb[tlbEntryIndex];
-
-    if (spaceEntry->physicalPage == -1)
-    {
-        spaceEntry = currentThread->space->LoadPage(virtualAddr);
-    }
 
     tlbEntry->valid = spaceEntry->valid;
     tlbEntry->virtualPage = virtualPage;

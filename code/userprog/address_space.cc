@@ -17,9 +17,8 @@
 /// and we have a single unsegmented page table.
 AddressSpace::AddressSpace(OpenFile *_executable_file)
 {
-    ASSERT(executable_file != nullptr);
-
     executable_file = _executable_file;
+    ASSERT(executable_file != nullptr);
 
     Executable exe(executable_file);
     ASSERT(exe.CheckMagic());
@@ -47,12 +46,13 @@ AddressSpace::AddressSpace(OpenFile *_executable_file)
     {
 
 #ifdef DEMAND_LOADING
-        pageTable[i].physicalPage = -1;
+        pageTable[i].physicalPage = 0;
+        pageTable[i].valid = false;
 #else
         pageTable[i].physicalPage = pageMap->Find();
+        pageTable[i].valid = true;
 #endif
         pageTable[i].virtualPage = i;
-        pageTable[i].valid = true;
         pageTable[i].use = false;
         pageTable[i].dirty = false;
         // If the code segment was entirely on a separate page, we could
@@ -166,51 +166,79 @@ AddressSpace::~AddressSpace()
     }
 
     delete[] pageTable;
+    delete executable_file;
 }
 
 TranslationEntry *AddressSpace::LoadPage(unsigned virtualAddr)
 {
     uint32_t virtualPage = DivRoundDown(virtualAddr, PAGE_SIZE);
-    TranslationEntry translationEntry = pageTable[virtualPage];
 
-    if (translationEntry.physicalPage != -1)
+    if (pageTable[virtualPage].valid)
     {
-        return &translationEntry;
+        return &pageTable[virtualPage];
     }
 
     uint32_t physicalPage = pageMap->Find();
-    translationEntry.physicalPage = physicalPage;
+    pageTable[virtualPage].physicalPage = physicalPage;
+    pageTable[virtualPage].valid = true;
 
     Executable exe(executable_file);
     uint32_t codeSize = exe.GetCodeSize();
     uint32_t initDataSize = exe.GetInitDataSize();
     char *mainMemory = machine->GetMMU()->mainMemory;
 
-    if (virtualAddr * PAGE_SIZE > codeSize + initDataSize)
+    uint32_t initialDataVirtualAddr = exe.GetInitDataAddr();
+    uint32_t codeVirtualAddr = exe.GetCodeAddr();
+
+    uint32_t lastCodePage = DivRoundDown(codeSize + codeVirtualAddr, PAGE_SIZE);
+    uint32_t lastCodePageSize = codeSize % PAGE_SIZE;
+    uint32_t lastCodePageAddr = lastCodePage * PAGE_SIZE;
+
+    uint32_t lastInitDataPage = DivRoundDown(initDataSize + initialDataVirtualAddr, PAGE_SIZE);
+    uint32_t lastInitDataPageSize = initDataSize % PAGE_SIZE;
+
+    DEBUG('d', "lastCodePage %d\n", lastCodePage);
+    DEBUG('d', "lastCodePageSize %d\n", lastCodePageSize);
+    DEBUG('d', "lastCodePageAddr %d\n", lastCodePageAddr);
+    DEBUG('d', "lastInitDataPage %d\n", lastInitDataPage);
+    DEBUG('d', "lastInitDataPageSize %d\n", lastInitDataPageSize);
+    DEBUG('d', "virtualPage %d\n", virtualPage);
+    DEBUG('d', "initialDataVirtualAddr %d\n", initialDataVirtualAddr);
+    DEBUG('d', "numPages %d\n", numPages);
+    DEBUG('d', "codeSize %d\n", codeSize);
+    DEBUG('d', "initDataSize %d\n", initDataSize);
+
+    uint32_t remaining = PAGE_SIZE;
+    uint32_t pageInit = virtualPage * PAGE_SIZE;
+
+    if (virtualPage <= lastCodePage)
     {
-        memset(mainMemory + physicalPage * PAGE_SIZE, 0, PAGE_SIZE);
+        uint32_t toRead = PAGE_SIZE;
+        if (virtualPage == lastCodePage)
+        {
+            toRead = lastCodePageSize;
+        }
+        uint32_t physicalAddr = TranslateVirtualAddrToPhysicalAddr(pageInit, nullptr);
+        DEBUG('d', "Writing %d to %d\n", toRead, pageInit);
+        exe.ReadCodeBlock(&mainMemory[physicalAddr], toRead, pageInit);
+        remaining -= toRead;
     }
-    else if (virtualAddr * PAGE_SIZE > initDataSize)
+    if (remaining > 0 && initDataSize > 0 && virtualPage <= lastInitDataPage)
     {
-        uint32_t initialDataVirtualAddr = exe.GetInitDataAddr();
-        unsigned dataOffset = virtualAddr - initialDataVirtualAddr;
-        uint32_t toRead = initDataSize - dataOffset;
-
-        uint32_t physicalAddr = TranslateVirtualAddrToPhysicalAddr(virtualAddr, nullptr);
-        translationEntry.readOnly = false;
-        exe.ReadDataBlock(&mainMemory[physicalAddr], toRead, dataOffset);
+        uint32_t toRead = remaining;
+        if (virtualPage == lastInitDataPage)
+        {
+            ASSERT(lastInitDataPageSize <= remaining);
+            toRead = lastInitDataPageSize;
+        }
+        uint32_t physicalAddr = TranslateVirtualAddrToPhysicalAddr(pageInit + PAGE_SIZE - remaining, nullptr);
+        exe.ReadDataBlock(&mainMemory[physicalAddr], toRead, (virtualPage - lastCodePage) * PAGE_SIZE);
+        remaining -= toRead;
     }
-    else
+    if (remaining > 0)
     {
-        uint32_t initialCodeVirtualAddr = exe.GetCodeAddr();
-        unsigned dataOffset = virtualAddr - initialCodeVirtualAddr;
-        uint32_t toRead = initDataSize - dataOffset;
-
-        uint32_t physicalAddr = TranslateVirtualAddrToPhysicalAddr(virtualAddr, nullptr);
-
-        // TODO: we should set this to true, but we need to know if this is shared with
-        translationEntry.readOnly = false;
-        exe.ReadDataBlock(&mainMemory[physicalAddr], toRead, dataOffset);
+        uint32_t physicalAddr = TranslateVirtualAddrToPhysicalAddr(pageInit - remaining + PAGE_SIZE, nullptr);
+        memset(&mainMemory[physicalAddr], 0, remaining);
     }
 
     return &pageTable[virtualPage];
