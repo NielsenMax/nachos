@@ -276,7 +276,7 @@ SyscallHandler(ExceptionType _et)
         int bufferAddr = machine->ReadRegister(4);
         if (bufferAddr == 0)
         {
-            DEBUG('e', "Error: address to filename string is null.\n");
+            DEBUG('e', "Error: .\n");
             machine->WriteRegister(2, -1);
             break;
         }
@@ -518,11 +518,6 @@ PageFaultExceptionHanlder(ExceptionType et)
     stats->numPageFaults++;
 
     TranslationEntry *tlbEntry = &machine->GetMMU()->tlb[tlbEntryIndex];
-
-    if (spaceEntry->physicalPage == -1)
-    {
-        spaceEntry = currentThread->space->LoadPage(virtualAddr);
-    }
 
     tlbEntry->valid = spaceEntry->valid;
     tlbEntry->virtualPage = virtualPage;
