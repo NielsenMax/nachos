@@ -7,12 +7,10 @@
 /// All rights reserved.  See `copyright.h` for copyright notice and
 /// limitation of liability and disclaimer of warranty provisions.
 
-
 #include "statistics.hh"
 #include "lib/utility.hh"
 
 #include <stdio.h>
-
 
 /// Initialize performance metrics to zero, at system startup.
 Statistics::Statistics()
@@ -20,30 +18,34 @@ Statistics::Statistics()
     totalTicks = idleTicks = systemTicks = userTicks = 0;
     numDiskReads = numDiskWrites = 0;
     numConsoleCharsRead = numConsoleCharsWritten = 0;
-    numPageFaults = numPacketsSent = numPacketsRecvd = 0;
+    numPacketsSent = numPacketsRecvd = 0;
+    numPageHits = numPageFaults = 0;
 #ifdef DFS_TICKS_FIX
     tickResets = 0;
 #endif
-
 }
 
 /// Print performance metrics, when we have finished everything at system
 /// shutdown.
-void
-Statistics::Print()
+void Statistics::Print()
 {
 #ifdef DFS_TICKS_FIX
-    if (tickResets != 0) {
+    if (tickResets != 0)
+    {
         printf("WARNING: the tick counter was reset %lu times; the following"
-               " statistics may be invalid.\n\n", tickResets);
+               " statistics may be invalid.\n\n",
+               tickResets);
     }
 #endif
+    unsigned long totalMemoryTries = numPageHits + numPageFaults;
+
     printf("Ticks: total %lu, idle %lu, system %lu, user %lu\n",
            totalTicks, idleTicks, systemTicks, userTicks);
     printf("Disk I/O: reads %lu, writes %lu\n", numDiskReads, numDiskWrites);
     printf("Console I/O: reads %lu, writes %lu\n",
            numConsoleCharsRead, numConsoleCharsWritten);
-    printf("Paging: faults %lu\n", numPageFaults);
+    printf("Paging: faults %lu, hits %lu, total %lu\n", 
+    numPageFaults, numPageHits, totalMemoryTries);
     printf("Network I/O: packets received %lu, sent %lu\n",
            numPacketsRecvd, numPacketsSent);
 }

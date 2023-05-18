@@ -40,10 +40,6 @@ MMU::MMU()
         mainMemory[i] = 0;
     }
 
-    numberOfMemoryRetrieves = 0;
-    numberOfTLBHits = 0;
-    TLBFailed = false;
-
 #ifdef USE_TLB
     tlb = new TranslationEntry[TLB_SIZE];
     for (unsigned i = 0; i < TLB_SIZE; i++)
@@ -190,7 +186,6 @@ ExceptionType
 MMU::RetrievePageEntry(unsigned vpn, TranslationEntry **entry)
 {
     ASSERT(entry != nullptr);
-    numberOfMemoryRetrieves++;
 
     if (tlb == nullptr)
     {
@@ -226,20 +221,10 @@ MMU::RetrievePageEntry(unsigned vpn, TranslationEntry **entry)
             {
                 *entry = e; // FOUND!
 
-                if (!TLBFailed)
-                {
-                    numberOfTLBHits++;
-                }
-                else
-                {
-                    TLBFailed = false;
-                }
-
                 return NO_EXCEPTION;
             }
         }
 
-        TLBFailed = true;
         // Not found.
         DEBUG_CONT('a', "no valid TLB entry found for this virtual page!\n");
         return PAGE_FAULT_EXCEPTION; // Really, this is a TLB fault, the
@@ -285,11 +270,6 @@ MMU::Translate(unsigned virtAddr, unsigned *physAddr,
 
     TranslationEntry *entry;
     ExceptionType exception = RetrievePageEntry(vpn, &entry);
-
-#ifdef USE_TLB
-    DEBUG('d', "TLB Hits (%u entries):\n", numberOfTLBHits);
-    DEBUG('d', "TLB Retrieves (%u entries):\n", numberOfMemoryRetrieves);
-#endif
 
     if (exception != NO_EXCEPTION)
     {
