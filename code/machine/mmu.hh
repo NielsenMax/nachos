@@ -25,9 +25,9 @@ const unsigned MEMORY_SIZE = NUM_PHYS_PAGES * PAGE_SIZE;
 /// Number of entries in the TLB, if one is present.
 ///
 /// If there is a TLB, it will be small compared to page tables.
-const unsigned TLB_SIZE = 4;
+// const unsigned TLB_SIZE = 4;
 // const unsigned TLB_SIZE = 32;
-// const unsigned TLB_SIZE = 64;
+const unsigned TLB_SIZE = 64;
 
 const unsigned MAX_MMU_RETIRES = 5;
 
@@ -89,9 +89,6 @@ public:
 
 private:
 
-    unsigned numberOfMemoryRetrieves;
-    unsigned numberOfTLBHits;
-    bool TLBFailed;
     /// Retrieve a page entry either from a page table or the TLB.
     ExceptionType RetrievePageEntry(unsigned vpn,
                                     TranslationEntry **entry);

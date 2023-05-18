@@ -440,6 +440,9 @@ PageFaultExceptionHanlder(ExceptionType et)
     unsigned tlbEntryIndex = TLB_FIFO;
 
     TranslationEntry *spaceEntry = currentThread->space->LoadPage(virtualAddr);
+
+    stats->numPageFaults++;
+
     TranslationEntry *tlbEntry = &machine->GetMMU()->tlb[tlbEntryIndex];
 
     tlbEntry->valid = spaceEntry->valid;
