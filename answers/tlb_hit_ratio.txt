@@ -1,0 +1,21 @@
+TAMAÑO: 4
+
+matmult:
+Paging: faults 62631, hits 747057, total 809688
+
+sort:
+Paging: faults 1581058, hits 22610001, total 24191059
+
+TAMAÑO: 32
+matmult:
+Paging: faults 110, hits 709405, total 709515
+
+sort:
+Paging: faults 3069, hits 22080139, total 22083208
+
+TAMAÑO: 64
+matmult:
+Paging: faults 47, hits 709352, total 709399
+
+sort:
+Paging: faults 39, hits 22077476, total 22077515
