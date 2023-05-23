@@ -107,6 +107,7 @@ Thread::~Thread()
 int Thread::SetAddressSpace(AddressSpace *space_)
 {
     space = space_;
+    space->spaceId = spaceId;
     return spaceId;
 }
 #endif

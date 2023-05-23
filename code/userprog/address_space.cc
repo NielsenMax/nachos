@@ -51,7 +51,8 @@ AddressSpace::AddressSpace(OpenFile *_executable_file)
         pageTable[i].physicalPage = pageMap->Find();
         pageTable[i].valid = true;
 #endif
-        pageTable[i].virtualPage = i;
+        // if virtual page is numPages is because its swapped
+        pageTable[i].virtualPage = i; 
         pageTable[i].use = false;
         pageTable[i].dirty = false;
         pageTable[i].readOnly = false;
@@ -158,6 +159,11 @@ AddressSpace::~AddressSpace()
 
     delete[] pageTable;
     delete executable_file;
+#ifdef SWAP_ENABLED
+    if(swapFile != nullptr) {
+        delete swapFile;
+    }
+#endif
 }
 
 TranslationEntry *AddressSpace::LoadPage(unsigned virtualAddr)

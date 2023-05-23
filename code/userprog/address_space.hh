@@ -48,6 +48,7 @@ public:
 
     unsigned TranslateVirtualAddrToPhysicalAddr(unsigned virtualAddr, unsigned *virtualPagePointer = nullptr);
     TranslationEntry *pageTable;
+    unsigned spaceId;
 
 private:
     /// Assume linear page table translation for now!
@@ -55,6 +56,11 @@ private:
     /// Number of pages in the virtual address space.
     OpenFile *executable_file;
     unsigned numPages;
+
+
+    #ifdef SWAP_ENABLED
+    OpenFile *swapFile;
+    #endif
 };
 
 #endif
