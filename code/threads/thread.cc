@@ -187,14 +187,18 @@ void Thread::Print() const
 ///
 /// NOTE: we disable interrupts, so that we do not get a time slice between
 /// setting `threadToBeDestroyed`, and going to sleep.
-void Thread::Finish()
+void Thread::Finish(int _status)
 {
+    DEBUG('t', "Finishing thread \"%s\"\n", GetName());
+    if (joinable)
+    {
+        DEBUG('d', "Thread is joinable\n");
+        channel->Send(_status);
+    }
+
     interrupt->SetLevel(INT_OFF);
     ASSERT(this == currentThread);
 
-    DEBUG('t', "Finishing thread \"%s\"\n", GetName());
-
-    channel->Send(0);
     threadToBeDestroyed = currentThread;
     Sleep(); // Invokes `SWITCH`.
     // Not reached.
