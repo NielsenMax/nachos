@@ -15,6 +15,9 @@
 
 #include "filesys/file_system.hh"
 #include "machine/translation_entry.hh"
+#include "threads/system.hh"
+
+#define SWAP_ENABLED 1
 
 const unsigned USER_STACK_SIZE = 1024; ///< Increase this as necessary!
 
@@ -50,6 +53,10 @@ public:
     TranslationEntry *pageTable;
     unsigned spaceId;
 
+    #ifdef SWAP_ENABLED
+    bool SwapPage(unsigned virtualPage);
+    #endif
+
 private:
     /// Assume linear page table translation for now!
 
@@ -57,8 +64,8 @@ private:
     OpenFile *executable_file;
     unsigned numPages;
 
-
     #ifdef SWAP_ENABLED
+    char *swapName;
     OpenFile *swapFile;
     #endif
 };
