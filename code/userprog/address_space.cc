@@ -14,6 +14,7 @@
 #include "machine/mmu.hh"
 
 #include <string.h>
+#include <string>
 
 /// First, set up the translation from program memory to physical memory.
 /// For now, this is really simple (1:1), since we are only uniprogramming,
@@ -42,7 +43,7 @@ AddressSpace::AddressSpace(OpenFile* _executable_file)
     // have virtual memory.
 
     DEBUG('a', "Initializing address space, num pages %u, size %u\n",
-          numPages, size);
+        numPages, size);
 
     // First, set up the translation.
 
@@ -154,7 +155,7 @@ AddressSpace::AddressSpace(OpenFile* _executable_file)
 }
 
 uint32_t
-AddressSpace::TranslateVirtualAddrToPhysicalAddr(uint32_t virtualAddr, uint32_t *virtualPagePointer)
+AddressSpace::TranslateVirtualAddrToPhysicalAddr(uint32_t virtualAddr, uint32_t* virtualPagePointer)
 {
     uint32_t virtualPage = DivRoundDown(virtualAddr, PAGE_SIZE);
     uint32_t pageOffset = virtualAddr % PAGE_SIZE;
@@ -354,7 +355,7 @@ void AddressSpace::InitRegisters()
     // accidentally reference off the end!
     machine->WriteRegister(STACK_REG, numPages * PAGE_SIZE - 16);
     DEBUG('a', "Initializing stack register to %u\n",
-          numPages * PAGE_SIZE - 16);
+        numPages * PAGE_SIZE - 16);
 }
 
 /// On a context switch, save any machine state, specific to this address
