@@ -11,11 +11,12 @@
 #include "lib/utility.hh"
 
 #include <string.h>
+#include <string>
 
 /// First, set up the translation from program memory to physical memory.
 /// For now, this is really simple (1:1), since we are only uniprogramming,
 /// and we have a single unsegmented page table.
-AddressSpace::AddressSpace(OpenFile *_executable_file)
+AddressSpace::AddressSpace(OpenFile* _executable_file)
 {
     executable_file = _executable_file;
     ASSERT(executable_file != nullptr);
@@ -35,7 +36,7 @@ AddressSpace::AddressSpace(OpenFile *_executable_file)
     // have virtual memory.
 
     DEBUG('a', "Initializing address space, num pages %u, size %u\n",
-          numPages, size);
+        numPages, size);
 
     // First, set up the translation.
 
@@ -53,7 +54,7 @@ AddressSpace::AddressSpace(OpenFile *_executable_file)
         pageTable[i].valid = true;
 #endif
         // if virtual page is numPages is because its swapped
-        pageTable[i].virtualPage = i; 
+        pageTable[i].virtualPage = i;
         pageTable[i].use = false;
         pageTable[i].dirty = false;
         // If the code segment was entirely on a separate page, we could
@@ -142,7 +143,7 @@ AddressSpace::AddressSpace(OpenFile *_executable_file)
 }
 
 uint32_t
-AddressSpace::TranslateVirtualAddrToPhysicalAddr(uint32_t virtualAddr, uint32_t *virtualPagePointer)
+AddressSpace::TranslateVirtualAddrToPhysicalAddr(uint32_t virtualAddr, uint32_t* virtualPagePointer)
 {
     uint32_t virtualPage = DivRoundDown(virtualAddr, PAGE_SIZE);
     uint32_t pageOffset = virtualAddr % PAGE_SIZE;
@@ -169,21 +170,31 @@ AddressSpace::~AddressSpace()
     delete[] pageTable;
     delete executable_file;
 #ifdef SWAP_ENABLED
-    if(swapFile != nullptr) {
+    if (swapFile != nullptr) {
         delete swapFile;
+        fileSystem->Remove(swapName);
+        delete [] swapName;
     }
 #endif
 }
 
-TranslationEntry *AddressSpace::LoadPage(unsigned virtualAddr)
+TranslationEntry* AddressSpace::LoadPage(unsigned virtualAddr)
 {
     uint32_t virtualPage = DivRoundDown(virtualAddr, PAGE_SIZE);
 
+    // The page is valid so we can return it
     if (pageTable[virtualPage].valid)
     {
         return &pageTable[virtualPage];
     }
 
+    // The page was swapped
+    if (pageTable[virtualPage].virtualPage != virtualPage) {
+        // TODO
+        ASSERT(false);
+    }
+
+    // The page was never loaded
     uint32_t physicalPage = pageMap->Find();
     pageTable[virtualPage].physicalPage = physicalPage;
     pageTable[virtualPage].valid = true;
@@ -191,7 +202,7 @@ TranslationEntry *AddressSpace::LoadPage(unsigned virtualAddr)
     Executable exe(executable_file);
     uint32_t codeSize = exe.GetCodeSize();
     uint32_t initDataSize = exe.GetInitDataSize();
-    char *mainMemory = machine->GetMMU()->mainMemory;
+    char* mainMemory = machine->GetMMU()->mainMemory;
 
     uint32_t initialDataVirtualAddr = exe.GetInitDataAddr();
     uint32_t codeVirtualAddr = exe.GetCodeAddr();
@@ -250,6 +261,35 @@ TranslationEntry *AddressSpace::LoadPage(unsigned virtualAddr)
     return &pageTable[virtualPage];
 };
 
+/// Swap a page. If is call for the first time the swap file is created.  
+/// Return false if the creation of the file fails.
+bool AddressSpace::SwapPage(unsigned virtualPage) {
+    // The wasn't created
+    if (swapFile == nullptr) {
+        swapName = new char[10];
+        sprintf(swapName, "SWAP.%u", spaceId); // spaceId should be set by this point
+        // ? Maybe be a good idea to check if the file already exist
+        // ? I supose be should also delete it from the fs when we are destroy
+        if (!fileSystem->Create(swapName, numPages * PAGE_SIZE)) {
+            return false;
+        }
+        swapFile = fileSystem->Open(swapName);
+        if (swapFile == nullptr) {
+            return false;
+        }
+    }
+
+    char* mainMemory = machine->GetMMU()->mainMemory;
+    uint32_t virtualAddr = virtualPage * PAGE_SIZE;
+    uint32_t physicalAddr = TranslateVirtualAddrToPhysicalAddr(virtualAddr, nullptr);
+
+    // The file should be a copy of the address space, therefore the offset is the virtualAddr
+    swapFile->WriteAt(&mainMemory[physicalAddr], PAGE_SIZE, virtualAddr);
+    pageTable[virtualPage].valid = false;
+    pageTable[virtualPage].virtualPage = numPages;
+    return true;
+}
+
 /// Set the initial values for the user-level register set.
 ///
 /// We write these directly into the “machine” registers, so that we can
@@ -275,7 +315,7 @@ void AddressSpace::InitRegisters()
     // accidentally reference off the end!
     machine->WriteRegister(STACK_REG, numPages * PAGE_SIZE - 16);
     DEBUG('a', "Initializing stack register to %u\n",
-          numPages * PAGE_SIZE - 16);
+        numPages * PAGE_SIZE - 16);
 }
 
 /// On a context switch, save any machine state, specific to this address
