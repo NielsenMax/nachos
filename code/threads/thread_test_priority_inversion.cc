@@ -43,7 +43,7 @@ GenerateThread(const char *threadName, int priority)
 {
     char *name = new char[64];
     strncpy(name, threadName, 64);
-    Thread *newThread = new Thread(name, false, priority);
+    Thread *newThread = new Thread(name, true, priority);
 
     return newThread;
 }
@@ -65,4 +65,7 @@ void ThreadTestPriorityInversion()
     mid1->Fork(Med, nullptr);
     mid2->Fork(Med, nullptr);
     high->Fork(High, nullptr);
+
+    high->Join();
+    low->Join();
 }

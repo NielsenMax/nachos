@@ -127,7 +127,7 @@ public:
     int Join();
 
     /// The thread is done executing.
-    void Finish();
+    void Finish(int status = 0);
 
     /// Check if thread has overflowed its stack.
     void CheckOverflow() const;
