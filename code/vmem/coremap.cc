@@ -1,11 +1,12 @@
 #include "coremap.hh"
+#include <limits.h>
 
 Coremap::Coremap(unsigned numPages_)
 {
    numPages = numPages_;
    physicals = new Bitmap(numPages);
    order = new List<unsigned>();
-   entries = new TranslationEntry[numPages];
+   entries = new Entry[numPages];
 }
 
 Coremap::~Coremap()
@@ -35,4 +36,22 @@ Coremap::Clear(unsigned physicalPage){
    }
    order->Remove(physicalPage);
    physicals->Clear(physicalPage);
+}
+
+#define COREMAP_LRU 1
+
+void Coremap::Get(unsigned physicalPage){
+   if(!physicals->Test(physicalPage)){
+      return;
+   }
+   #ifdef COREMAP_LRU
+   order->Remove(physicalPage);
+   order->Append(physicalPage);
+   #endif
+
+   return;
+}
+
+unsigned Coremap::CountClear(){
+   return UINT_MAX;
 }

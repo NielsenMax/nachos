@@ -6,7 +6,7 @@
 #include "threads/system.hh"
 #include "lib/list.hh"
 
-class TranslationEntry
+class Entry
 {
 public:
    unsigned virtualPage;
@@ -29,9 +29,11 @@ public:
    ~Coremap();
    unsigned Find(unsigned virtualPage);
    void Clear(unsigned virtualPage);
+   unsigned CountClear();
+   void Get(unsigned physicalPage);
 private:
    Bitmap *physicals;
-   TranslationEntry* entries;
+   Entry* entries;
    List<unsigned>* order;
 
    unsigned numPages;
