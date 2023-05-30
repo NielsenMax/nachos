@@ -15,7 +15,7 @@
 
 #include "filesys/file_system.hh"
 #include "machine/translation_entry.hh"
-#include "threads/system.hh"
+// #include "threads/system.hh"
 
 #define SWAP_ENABLED 1
 
