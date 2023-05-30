@@ -1,5 +1,6 @@
 #include "coremap.hh"
 #include <limits.h>
+#include "threads/system.hh"
 
 Coremap::Coremap(unsigned numPages_)
 {
