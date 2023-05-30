@@ -54,6 +54,7 @@ public:
     unsigned spaceId;
 
     #ifdef SWAP_ENABLED
+    bool UnswapPage(unsigned virtualPage);
     bool SwapPage(unsigned virtualPage);
     #endif
 

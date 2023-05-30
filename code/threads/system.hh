@@ -18,6 +18,8 @@
 // TODO: borrar.
 #define USER_PROGRAM 1
 #define FILESYS_NEEDED 1
+#define COREMAP 1 
+
 
 /// Initialization and cleanup routines.
 
@@ -44,7 +46,12 @@ class SynchConsole;
 
 extern Machine *machine; // User program memory and registers.
 extern SynchConsole *synchConsole; // Console used in syscall testing
-extern Bitmap *pageMap;
+#ifdef COREMAP
+#include "vmem/coremap.hh"
+extern Coremap* pageMap;
+#else
+extern Bitmap* pageMap;
+#endif
 extern Table<Thread*> *threadsTable;
 
 #endif

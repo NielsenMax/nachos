@@ -91,6 +91,12 @@ void MMU::InvalidateTLB()
     }
 }
 
+void MMU::InvalidateTLBPage(unsigned page){
+    ASSERT(tlb != nullptr);
+    ASSERT(page < TLB_SIZE);
+    tlb[page].valid = false;
+}
+
 /// Read `size` (1, 2, or 4) bytes of virtual memory at `addr` into
 /// the location pointed to by `value`.
 ///
