@@ -50,7 +50,11 @@ AddressSpace::AddressSpace(OpenFile* _executable_file)
         pageTable[i].physicalPage = 0;
         pageTable[i].valid = false;
 #else
+        #ifdef COREMAP
+        pageTable[i].physicalPage = pageMap->Find(i);
+        #else
         pageTable[i].physicalPage = pageMap->Find();
+        #endif
         pageTable[i].valid = true;
 #endif
         // if virtual page is numPages is because its swapped
@@ -188,14 +192,20 @@ TranslationEntry* AddressSpace::LoadPage(unsigned virtualAddr)
         return &pageTable[virtualPage];
     }
 
+    #ifdef SWAP_ENABLED
     // The page was swapped
     if (pageTable[virtualPage].virtualPage != virtualPage) {
-        // TODO
-        ASSERT(false);
+        UnswapPage(virtualPage);
+        return &pageTable[virtualPage];
     }
+    #endif
 
     // The page was never loaded
-    uint32_t physicalPage = pageMap->Find();
+    #ifdef COREMAP
+        uint32_t physicalPage = pageMap->Find(virtualPage);
+        #else
+        uint32_t physicalPage = pageMap->Find();
+        #endif
     pageTable[virtualPage].physicalPage = physicalPage;
     pageTable[virtualPage].valid = true;
 
@@ -261,6 +271,19 @@ TranslationEntry* AddressSpace::LoadPage(unsigned virtualAddr)
     return &pageTable[virtualPage];
 };
 
+bool AddressSpace::UnswapPage(unsigned virtualPage){
+    ASSERT(swapFile != nullptr);
+    char* mainMemory = machine->GetMMU()->mainMemory;
+    uint32_t virtualAddr = virtualPage * PAGE_SIZE;
+    uint32_t physicalAddr = TranslateVirtualAddrToPhysicalAddr(virtualAddr, nullptr);
+
+    // The file should be a copy of the address space, therefore the offset is the virtualAddr
+    swapFile->ReadAt(&mainMemory[physicalAddr], PAGE_SIZE, virtualAddr);
+    pageTable[virtualPage].valid = true;
+    pageTable[virtualPage].virtualPage = virtualPage;
+    return true;
+}
+
 /// Swap a page. If is call for the first time the swap file is created.  
 /// Return false if the creation of the file fails.
 bool AddressSpace::SwapPage(unsigned virtualPage) {
@@ -287,6 +310,7 @@ bool AddressSpace::SwapPage(unsigned virtualPage) {
     swapFile->WriteAt(&mainMemory[physicalAddr], PAGE_SIZE, virtualAddr);
     pageTable[virtualPage].valid = false;
     pageTable[virtualPage].virtualPage = numPages;
+    machine->GetMMU()->InvalidateTLBPage(virtualPage);
     return true;
 }
 

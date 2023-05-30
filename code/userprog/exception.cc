@@ -496,7 +496,9 @@ PageFaultExceptionHanlder(ExceptionType et)
     unsigned tlbEntryIndex = TLB_FIFO;
 
     TranslationEntry *spaceEntry = currentThread->space->LoadPage(virtualAddr);
-
+    #ifdef COREMAP
+    pageMap->Get(spaceEntry->physicalPage);
+    #endif
     stats->numPageFaults++;
 
     TranslationEntry *tlbEntry = &machine->GetMMU()->tlb[tlbEntryIndex];

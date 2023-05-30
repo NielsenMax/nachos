@@ -49,6 +49,7 @@ public:
     ExceptionType WriteMem(unsigned addr, unsigned size, int value);
 
     void InvalidateTLB();
+    void InvalidateTLBPage(unsigned page);
 
     void PrintTLB() const;
 

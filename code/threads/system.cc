@@ -47,7 +47,12 @@ SynchDisk* synchDisk;
 #ifdef USER_PROGRAM  // Requires either *FILESYS* or *FILESYS_STUB*.
 Machine* machine;  ///< User program memory and registers.
 SynchConsole* synchConsole;
+#ifdef COREMAP
+Coremap* pageMap;
+#else
 Bitmap* pageMap;
+#endif
+
 Table<Thread*>* threadsTable;
 #endif
 
@@ -145,7 +150,11 @@ Initialize(int argc, char** argv)
 
 #ifdef USER_PROGRAM
     bool debugUserProg = false;  // Single step user program.
+    #ifdef COREMAP
+    pageMap = new Coremap(NUM_PHYS_PAGES);
+    #else
     pageMap = new Bitmap(NUM_PHYS_PAGES);
+    #endif
     threadsTable = new Table<Thread*>();
     // synchConsole = new SynchConsole(NULL, NULL);
 #endif
