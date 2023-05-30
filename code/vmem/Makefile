@@ -13,7 +13,7 @@
 # All rights reserved.  See `copyright.h` for copyright notice and
 # limitation of liability and disclaimer of warranty provisions.
 
-DEFINES      = -DUSER_PROGRAM  -DFILESYS_NEEDED -DFILESYS_STUB -DVMEM \
+DEFINES      = -DUSER_PROGRAM  -DFILESYS_NEEDED -DFILESYS_STUB  \
                -DUSE_TLB -DDFS_TICKS_FIX -DDEMAND_LOADING
 INCLUDE_DIRS = -I.. -I../filesys -I../bin -I../userprog -I../threads \
                -I../machine
