@@ -40,6 +40,6 @@ main(void)
     }
 
     // And then we are done.
-    Halt();
+    // Halt();
     return C[DIM - 1][DIM - 1];
 }
