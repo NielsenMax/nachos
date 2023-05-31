@@ -2,6 +2,7 @@
 #include <limits.h>
 #include "threads/system.hh"
 
+#ifdef SWAP_ENABLED
 Coremap::Coremap(unsigned numPages_)
 {
    numPages = numPages_;
@@ -58,3 +59,4 @@ void Coremap::Get(unsigned physicalPage){
 unsigned Coremap::CountClear(){
    return UINT_MAX;
 }
+#endif

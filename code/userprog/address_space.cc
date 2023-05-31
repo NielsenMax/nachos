@@ -184,14 +184,6 @@ TranslationEntry* AddressSpace::LoadPage(unsigned virtualAddr)
         return &pageTable[virtualPage];
     }
 
-#ifdef SWAP_ENABLED
-    // The page was swapped
-    if (pageTable[virtualPage].virtualPage != virtualPage) {
-        UnswapPage(virtualPage);
-        return &pageTable[virtualPage];
-    }
-#endif
-
     // The page was never loaded
 #ifdef SWAP_ENABLED
     uint32_t physicalPage = pageMap->Find(virtualPage);
@@ -200,6 +192,15 @@ TranslationEntry* AddressSpace::LoadPage(unsigned virtualAddr)
 #endif
     pageTable[virtualPage].physicalPage = physicalPage;
     pageTable[virtualPage].valid = true;
+
+#ifdef SWAP_ENABLED
+    // The page was swapped
+    if (pageTable[virtualPage].virtualPage != virtualPage) {
+        bool err = UnswapPage(virtualPage);
+        DEBUG('d', "the unswap was succesful %d\n", err);
+        return &pageTable[virtualPage];
+    }
+#endif
 
     Executable exe(executable_file);
     uint32_t codeSize = exe.GetCodeSize();
@@ -216,16 +217,16 @@ TranslationEntry* AddressSpace::LoadPage(unsigned virtualAddr)
     uint32_t lastInitDataPage = DivRoundDown(initDataSize + initialDataVirtualAddr, PAGE_SIZE);
     uint32_t lastInitDataPageSize = initDataSize % PAGE_SIZE;
 
-    DEBUG('d', "lastCodePage %d\n", lastCodePage);
-    DEBUG('d', "lastCodePageSize %d\n", lastCodePageSize);
-    DEBUG('d', "lastCodePageAddr %d\n", lastCodePageAddr);
-    DEBUG('d', "lastInitDataPage %d\n", lastInitDataPage);
-    DEBUG('d', "lastInitDataPageSize %d\n", lastInitDataPageSize);
-    DEBUG('d', "virtualPage %d\n", virtualPage);
-    DEBUG('d', "initialDataVirtualAddr %d\n", initialDataVirtualAddr);
-    DEBUG('d', "numPages %d\n", numPages);
-    DEBUG('d', "codeSize %d\n", codeSize);
-    DEBUG('d', "initDataSize %d\n", initDataSize);
+    // DEBUG('d', "lastCodePage %d\n", lastCodePage);
+    // DEBUG('d', "lastCodePageSize %d\n", lastCodePageSize);
+    // DEBUG('d', "lastCodePageAddr %d\n", lastCodePageAddr);
+    // DEBUG('d', "lastInitDataPage %d\n", lastInitDataPage);
+    // DEBUG('d', "lastInitDataPageSize %d\n", lastInitDataPageSize);
+    // DEBUG('d', "virtualPage %d\n", virtualPage);
+    // DEBUG('d', "initialDataVirtualAddr %d\n", initialDataVirtualAddr);
+    // DEBUG('d', "numPages %d\n", numPages);
+    // DEBUG('d', "codeSize %d\n", codeSize);
+    // DEBUG('d', "initDataSize %d\n", initDataSize);
 
     uint32_t remaining = PAGE_SIZE;
     uint32_t pageInit = virtualPage * PAGE_SIZE;
@@ -262,9 +263,12 @@ TranslationEntry* AddressSpace::LoadPage(unsigned virtualAddr)
 
     return &pageTable[virtualPage];
 };
+
 #ifdef SWAP_ENABLED
 
 bool AddressSpace::UnswapPage(unsigned virtualPage) {
+    DEBUG('e', "going to unswap page %d\n", virtualPage);
+
     ASSERT(swapFile != nullptr);
     char* mainMemory = machine->GetMMU()->mainMemory;
     uint32_t virtualAddr = virtualPage * PAGE_SIZE;
@@ -280,6 +284,7 @@ bool AddressSpace::UnswapPage(unsigned virtualPage) {
 /// Swap a page. If is call for the first time the swap file is created.  
 /// Return false if the creation of the file fails.
 bool AddressSpace::SwapPage(unsigned virtualPage) {
+    DEBUG('e', "going to swap page %d\n", virtualPage);
     // The wasn't created
     if (swapFile == nullptr) {
         swapName = new char[10];
@@ -303,9 +308,9 @@ bool AddressSpace::SwapPage(unsigned virtualPage) {
     swapFile->WriteAt(&mainMemory[physicalAddr], PAGE_SIZE, virtualAddr);
     pageTable[virtualPage].valid = false;
     pageTable[virtualPage].virtualPage = numPages;
-    DEBUG('d', "invalidating page %d of the TLB\n", virtualPage)
-    // ! THIS IS NOT THE VIRTUAL PAGE
-    machine->GetMMU()->InvalidateTLBPage(virtualPage); 
+    DEBUG('d', "invalidating page %d of the TLB\n", pageTable[virtualPage].physicalPage);
+    
+    machine->GetMMU()->InvalidateTLBPage(pageTable[virtualPage].physicalPage); 
     return true;
 }
 #endif
