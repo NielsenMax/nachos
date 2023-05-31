@@ -31,8 +31,9 @@ AddressSpace::AddressSpace(OpenFile* _executable_file)
     // We need to increase the size to leave room for the stack.
     numPages = DivRoundUp(size, PAGE_SIZE);
     size = numPages * PAGE_SIZE;
-
+#ifndef SWAP_ENABLED
     ASSERT(numPages <= pageMap->CountClear());
+#endif
     // Check we are not trying to run anything too big -- at least until we
     // have virtual memory.
 
@@ -49,11 +50,11 @@ AddressSpace::AddressSpace(OpenFile* _executable_file)
         pageTable[i].physicalPage = 0;
         pageTable[i].valid = false;
 #else
-        #ifdef COREMAP
+#ifdef SWAP_ENABLED
         pageTable[i].physicalPage = pageMap->Find(i);
-        #else
+#else
         pageTable[i].physicalPage = pageMap->Find();
-        #endif
+#endif
         pageTable[i].valid = true;
 #endif
         // if virtual page is numPages is because its swapped
@@ -168,7 +169,7 @@ AddressSpace::~AddressSpace()
     if (swapFile != nullptr) {
         delete swapFile;
         fileSystem->Remove(swapName);
-        delete [] swapName;
+        delete[] swapName;
     }
 #endif
 }
@@ -183,20 +184,20 @@ TranslationEntry* AddressSpace::LoadPage(unsigned virtualAddr)
         return &pageTable[virtualPage];
     }
 
-    #ifdef SWAP_ENABLED
+#ifdef SWAP_ENABLED
     // The page was swapped
     if (pageTable[virtualPage].virtualPage != virtualPage) {
         UnswapPage(virtualPage);
         return &pageTable[virtualPage];
     }
-    #endif
+#endif
 
     // The page was never loaded
-    #ifdef COREMAP
-        uint32_t physicalPage = pageMap->Find(virtualPage);
-        #else
-        uint32_t physicalPage = pageMap->Find();
-        #endif
+#ifdef SWAP_ENABLED
+    uint32_t physicalPage = pageMap->Find(virtualPage);
+#else
+    uint32_t physicalPage = pageMap->Find();
+#endif
     pageTable[virtualPage].physicalPage = physicalPage;
     pageTable[virtualPage].valid = true;
 
@@ -261,8 +262,9 @@ TranslationEntry* AddressSpace::LoadPage(unsigned virtualAddr)
 
     return &pageTable[virtualPage];
 };
+#ifdef SWAP_ENABLED
 
-bool AddressSpace::UnswapPage(unsigned virtualPage){
+bool AddressSpace::UnswapPage(unsigned virtualPage) {
     ASSERT(swapFile != nullptr);
     char* mainMemory = machine->GetMMU()->mainMemory;
     uint32_t virtualAddr = virtualPage * PAGE_SIZE;
@@ -301,10 +303,12 @@ bool AddressSpace::SwapPage(unsigned virtualPage) {
     swapFile->WriteAt(&mainMemory[physicalAddr], PAGE_SIZE, virtualAddr);
     pageTable[virtualPage].valid = false;
     pageTable[virtualPage].virtualPage = numPages;
-    machine->GetMMU()->InvalidateTLBPage(virtualPage);
+    DEBUG('d', "invalidating page %d of the TLB\n", virtualPage)
+    // ! THIS IS NOT THE VIRTUAL PAGE
+    machine->GetMMU()->InvalidateTLBPage(virtualPage); 
     return true;
 }
-
+#endif
 /// Set the initial values for the user-level register set.
 ///
 /// We write these directly into the “machine” registers, so that we can

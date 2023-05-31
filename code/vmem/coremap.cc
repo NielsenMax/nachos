@@ -21,6 +21,8 @@ Coremap::Find(unsigned virtualPage){
    int page = physicals->Find();
    if(page < 0) {
       page = order->Pop();
+      DEBUG('d', "The process is %s\n",entries[page].process->GetName());
+      DEBUG('d', "The page is %d and the entry is %d\n", page, entries[page].virtualPage);
       ASSERT(entries[page].process->space != nullptr);
       entries[page].process->space->SwapPage(entries[page].virtualPage);
    }

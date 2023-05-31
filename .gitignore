@@ -8,3 +8,4 @@ code/bin/*
 **/*.o
 **/*.coff
 code/**/nachos
+code/**/SWAP.*

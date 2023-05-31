@@ -31,8 +31,9 @@ void StartProcess(const char *filename)
     }
 
     AddressSpace *space = new AddressSpace(executable);
-    currentThread->space = space;
-
+    // currentThread->space = space;
+    int spaceid = currentThread->SetAddressSpace(space);
+    DEBUG('d', "The process is %s and the space id is %d\n", currentThread->GetName(), spaceid);
     // delete executable;
 
     space->InitRegisters(); // Set the initial register values.
