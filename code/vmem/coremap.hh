@@ -4,6 +4,7 @@
 #include "lib/bitmap.hh"
 #include "threads/thread.hh"
 #include "lib/list.hh"
+#ifdef SWAP_ENABLED
 
 class Entry
 {
@@ -31,4 +32,5 @@ private:
 };
 
 
+#endif
 #endif

@@ -12,7 +12,7 @@
 
 
 DEFINES      = -DUSER_PROGRAM -DFILESYS_NEEDED -DFILESYS_STUB \
-               -DDFS_TICKS_FIX -DTIME_SLICING -DSWAP_ENABLED  \
+               -DDFS_TICKS_FIX -DTIME_SLICING -DSWAP_ENABLED \
                -DDEMAND_LOADING -DUSE_TLB
 INCLUDE_DIRS = -I.. -I../bin -I../filesys -I../threads -I../machine -I../vmem
 HDR_FILES    = $(THREAD_HDR) $(USERPROG_HDR)
