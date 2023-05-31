@@ -496,13 +496,15 @@ PageFaultExceptionHanlder(ExceptionType et)
     unsigned tlbEntryIndex = TLB_FIFO;
 
     TranslationEntry *spaceEntry = currentThread->space->LoadPage(virtualAddr);
-    #ifdef COREMAP
+    #ifdef SWAP_ENABLED
     pageMap->Get(spaceEntry->physicalPage);
     #endif
     stats->numPageFaults++;
 
+    DEBUG('d', "The tlb entry in fifo is %d\n", tlbEntryIndex);
     TranslationEntry *tlbEntry = &machine->GetMMU()->tlb[tlbEntryIndex];
-
+    DEBUG('d', "The tlb entry is on %p\n", tlbEntry);
+    // DEBUG('d', "The tlb is on %p\n", machine->GetMMU()->tlb);
     tlbEntry->valid = spaceEntry->valid;
     tlbEntry->virtualPage = virtualPage;
     tlbEntry->physicalPage = spaceEntry->physicalPage;

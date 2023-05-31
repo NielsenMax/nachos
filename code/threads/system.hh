@@ -46,7 +46,7 @@ class SynchConsole;
 
 extern Machine *machine; // User program memory and registers.
 extern SynchConsole *synchConsole; // Console used in syscall testing
-#ifdef COREMAP
+#ifdef SWAP_ENABLED
 #include "vmem/coremap.hh"
 extern Coremap* pageMap;
 #else
