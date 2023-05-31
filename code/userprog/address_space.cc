@@ -280,6 +280,7 @@ TranslationEntry* AddressSpace::LoadPage(unsigned virtualAddr)
 
     return &pageTable[virtualPage];
 };
+
 #ifdef SWAP_ENABLED
 
 #ifdef SWAP_ENABLED
