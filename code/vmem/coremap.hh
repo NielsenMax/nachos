@@ -21,7 +21,6 @@ public:
    ~Coremap();
    unsigned Find(unsigned virtualPage);
    void Clear(unsigned virtualPage);
-   unsigned CountClear();
    void Get(unsigned physicalPage);
 private:
    Bitmap *physicals;

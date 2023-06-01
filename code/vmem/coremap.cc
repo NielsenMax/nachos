@@ -42,7 +42,7 @@ Coremap::Clear(unsigned physicalPage){
    physicals->Clear(physicalPage);
 }
 
-#define COREMAP_LRU 1
+// #define COREMAP_LRU 1
 
 void Coremap::Get(unsigned physicalPage){
    if(!physicals->Test(physicalPage)){
@@ -56,7 +56,4 @@ void Coremap::Get(unsigned physicalPage){
    return;
 }
 
-unsigned Coremap::CountClear(){
-   return UINT_MAX;
-}
 #endif
