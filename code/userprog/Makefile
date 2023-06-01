@@ -13,7 +13,7 @@
 
 DEFINES      = -DUSER_PROGRAM -DFILESYS_NEEDED -DFILESYS_STUB \
                -DDFS_TICKS_FIX -DTIME_SLICING
-INCLUDE_DIRS = -I.. -I../bin -I../filesys -I../threads -I../machine -I../vmem
+INCLUDE_DIRS = -I.. -I../bin -I../filesys -I../threads -I../machine
 HDR_FILES    = $(THREAD_HDR) $(USERPROG_HDR)
 SRC_FILES    = $(THREAD_SRC) $(USERPROG_SRC)
 OBJ_FILES    = $(THREAD_OBJ) $(USERPROG_OBJ)
