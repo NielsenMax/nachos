@@ -9,7 +9,6 @@
 #include "executable.hh"
 #include "threads/system.hh"
 #include "lib/utility.hh"
-#include "machine/mmu.hh"
 
 #include <string.h>
 
