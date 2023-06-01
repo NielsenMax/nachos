@@ -28,7 +28,7 @@
 
 #include <stdio.h>
 
-#define USE_TLB 1
+// #define USE_TLB 1
 
 static void
 IncrementPC()

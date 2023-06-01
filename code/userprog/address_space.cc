@@ -229,7 +229,7 @@ TranslationEntry* AddressSpace::LoadPage(unsigned virtualAddr)
 
     uint32_t lastCodePage = DivRoundDown(codeSize + codeVirtualAddr, PAGE_SIZE);
     uint32_t lastCodePageSize = codeSize % PAGE_SIZE;
-    uint32_t lastCodePageAddr = lastCodePage * PAGE_SIZE;
+    // uint32_t lastCodePageAddr = lastCodePage * PAGE_SIZE;
 
     uint32_t lastInitDataPage = DivRoundDown(initDataSize + initialDataVirtualAddr, PAGE_SIZE);
     uint32_t lastInitDataPageSize = initDataSize % PAGE_SIZE;
