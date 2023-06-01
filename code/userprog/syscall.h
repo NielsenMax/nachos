@@ -31,6 +31,7 @@
 #define SC_CLOSE   13
 #define SC_READ    14
 #define SC_WRITE   15
+#define SC_PS   16
 
 
 #ifndef IN_ASM
@@ -58,7 +59,7 @@ typedef int SpaceId;
 
 /// Run the executable, stored in the Nachos file `name`, and return the
 /// address space identifier.
-SpaceId Exec(char *name);
+SpaceId Exec(char *name, char **argvAddr, int joinable);
 
 /// Only return once the the user program `id` has finished.
 ///
@@ -121,6 +122,9 @@ int Read(char *buffer, int size, OpenFileId id);
 
 /// Close the file, we are done reading and writing to it.
 int Close(OpenFileId id);
+
+/// Print the scheduler.
+void Ps();
 
 
 #endif

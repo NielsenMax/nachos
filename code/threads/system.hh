@@ -8,7 +8,6 @@
 #ifndef NACHOS_THREADS_SYSTEM__HH
 #define NACHOS_THREADS_SYSTEM__HH
 
-
 #include "thread.hh"
 #include "scheduler.hh"
 #include "lib/utility.hh"
@@ -16,6 +15,9 @@
 #include "machine/statistics.hh"
 #include "machine/timer.hh"
 
+// TODO: borrar.
+// #define USER_PROGRAM 1
+// #define FILESYS_NEEDED 1
 
 /// Initialization and cleanup routines.
 
@@ -25,20 +27,29 @@ extern void Initialize(int argc, char **argv);
 // Cleanup, called when Nachos is done.
 extern void Cleanup();
 
-
-extern Thread *currentThread;        ///< The thread holding the CPU.
-extern Thread *threadToBeDestroyed;  ///< The thread that just finished.
-extern Scheduler *scheduler;         ///< The ready list.
-extern Interrupt *interrupt;         ///< Interrupt status.
-extern Statistics *stats;            ///< Performance metrics.
-extern Timer *timer;                 ///< The hardware alarm clock.
+extern Thread *currentThread;       ///< The thread holding the CPU.
+extern Thread *threadToBeDestroyed; ///< The thread that just finished.
+extern Scheduler *scheduler;        ///< The ready list.
+extern Interrupt *interrupt;        ///< Interrupt status.
+extern Statistics *stats;           ///< Performance metrics.
+extern Timer *timer;                ///< The hardware alarm clock.
 
 #ifdef USER_PROGRAM
+#include "userprog/synch_console.hh"
 #include "machine/machine.hh"
-extern Machine *machine;  // User program memory and registers.
+#include "lib/bitmap.hh"
+#include "lib/table.hh"
+
+class SynchConsole;
+
+extern Machine *machine; // User program memory and registers.
+extern SynchConsole *synchConsole; // Console used in syscall testing
+extern Bitmap *pageMap;
+extern Table<Thread*> *threadsTable;
+
 #endif
 
-#ifdef FILESYS_NEEDED  // *FILESYS* or *FILESYS_STUB*.
+#ifdef FILESYS_NEEDED // *FILESYS* or *FILESYS_STUB*.
 #include "filesys/file_system.hh"
 extern FileSystem *fileSystem;
 #endif
@@ -52,6 +63,5 @@ extern SynchDisk *synchDisk;
 #include "network/post.hh"
 extern PostOffice *postOffice;
 #endif
-
 
 #endif

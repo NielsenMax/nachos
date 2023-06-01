@@ -8,15 +8,14 @@
 /// procedure, but if you do this, you have to be careful to allocate a big
 /// enough stack to hold the automatics!
 
-
 #include "syscall.h"
-
 
 int
 main(void)
 {
-    // Halt();
-    Exit(1);
-    // Not reached.
-    return -1;
+    Exec("../userland/halt", 0, 0);
+
+    // Hopefully reached.
+    Write("This should be printed.\n", 28, CONSOLE_OUTPUT);
+    Halt();
 }

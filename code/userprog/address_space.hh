@@ -48,9 +48,10 @@ public:
     void RestoreState();
 
 private:
-
     /// Assume linear page table translation for now!
     TranslationEntry *pageTable;
+
+    unsigned TranslateVirtualAddrToPhysicalAddr(unsigned virtualAddr, unsigned *virtualPagePointer = nullptr);
 
     /// Number of pages in the virtual address space.
     unsigned numPages;

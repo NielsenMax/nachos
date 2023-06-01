@@ -5,6 +5,9 @@
 #ifndef NACHOS_USERPROG_EXCEPTION__HH
 #define NACHOS_USERPROG_EXCEPTION__HH
 
+#include "threads/system.hh"
+#include "filesys/open_file.hh"
+#include "args.hh"
 
 /// Set exception handlers for every exception type.
 ///
@@ -12,6 +15,5 @@
 /// are called when a user program is executing, and either does a system
 /// call, or generates an addressing or arithmetic exception.
 void SetExceptionHandlers();
-
 
 #endif

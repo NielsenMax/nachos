@@ -35,6 +35,7 @@ Channel::Send(int msg) {
     lock->Acquire();
     buffer = msg;
     recievers->V();
+    DEBUG('d', "WAITING FOR ACK\n");
     communicationAck->P();
     lock->Release();
 }

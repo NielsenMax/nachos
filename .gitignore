@@ -1,2 +1,10 @@
+code/userland/*
+!code/userland/*.*
+!code/userland/Makefile
+code/bin/*
+!code/bin/*.*
+!code/bin/Makefile
+
 **/*.o
+**/*.coff
 code/**/nachos

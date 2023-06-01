@@ -50,11 +50,25 @@ Thread::Thread(const char *threadName, bool joinable_, int priority_)
     stack = nullptr;
     status = JUST_CREATED;
 #ifdef USER_PROGRAM
+    spaceId = threadsTable->Add(this);
+    fileTable = new Table<OpenFile *>();
+    // Reserver the entry 0 and 1 for the console
+    for (int i = 0; i < 2; i++)
+    {
+        fileTable->Add(nullptr);
+    }
+
     space = nullptr;
 #endif
-    channel = new Channel(threadName);
+    if (joinable)
+    {
+        channel = new Channel(threadName);
+    }
+    else
+    {
+        channel = nullptr;
+    }
 }
-
 
 /// De-allocate a thread.
 ///
@@ -71,15 +85,36 @@ Thread::~Thread()
     ASSERT(this != currentThread);
     if (stack != nullptr)
     {
-        delete channel;
         SystemDep::DeallocBoundedArray((char *)stack,
                                        STACK_SIZE * sizeof *stack);
     }
+    if (channel != nullptr)
+    {
+        delete channel;
+    }
+#ifdef USER_PROGRAM
+    delete fileTable;
+    threadsTable->Remove(spaceId);
+    if (space != nullptr)
+    {
+        delete space;
+    }
+#endif
+    delete [] name;
 }
+
+#ifdef USER_PROGRAM
+int Thread::SetAddressSpace(AddressSpace *space_)
+{
+    space = space_;
+    return spaceId;
+}
+#endif
+
 
 int Thread::Join()
 {
-    ASSERT(joinable);
+    // ASSERT(joinable);
 
     int result = 0;
     channel->Receive(&result);
@@ -135,7 +170,7 @@ void Thread::Fork(VoidFunctionPtr func, void *arg)
 
     IntStatus oldLevel = interrupt->SetLevel(INT_OFF);
     scheduler->ReadyToRun(this); // `ReadyToRun` assumes that interrupts
-                                 // are disabled!
+    // are disabled!
     interrupt->SetLevel(oldLevel);
 }
 
@@ -323,6 +358,24 @@ void Thread::StackAllocate(VoidFunctionPtr func, void *arg)
 
 #ifdef USER_PROGRAM
 #include "machine/machine.hh"
+
+void Thread::RemoveFile(int fileId)
+{
+    OpenFile *file = fileTable->Remove(fileId);
+    delete file;
+}
+int Thread::AddFile(OpenFile *file)
+{
+    return fileTable->Add(file);
+}
+bool Thread::HasFile(int fileId)
+{
+    return fileTable->HasKey(fileId);
+}
+OpenFile *Thread::GetFile(int fileId)
+{
+    return fileTable->Get(fileId);
+}
 
 /// Save the CPU state of a user program on a context switch.
 ///

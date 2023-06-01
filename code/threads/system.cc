@@ -22,32 +22,37 @@
 ///
 /// These are all initialized and de-allocated by this file.
 
-Thread *currentThread;        ///< The thread we are running now.
-Thread *threadToBeDestroyed;  ///< The thread that just finished.
-Scheduler *scheduler;         ///< The ready list.
-Interrupt *interrupt;         ///< Interrupt status.
-Statistics *stats;            ///< Performance metrics.
-Timer *timer;                 ///< The hardware timer device, for invoking
-                              ///< context switches.
+Thread* currentThread;        ///< The thread we are running now.
+Thread* threadToBeDestroyed;  ///< The thread that just finished.
+Scheduler* scheduler;         ///< The ready list.
+Interrupt* interrupt;         ///< Interrupt status.
+Statistics* stats;            ///< Performance metrics.
+Timer* timer;                 ///< The hardware timer device, for invoking
+///< context switches.
 
 // 2007, Jose Miguel Santos Espino
-PreemptiveScheduler *preemptiveScheduler = nullptr;
+PreemptiveScheduler* preemptiveScheduler = nullptr;
 const long long DEFAULT_TIME_SLICE = 50000;
 
+// #define FILESYS_NEEDED 1 
+
 #ifdef FILESYS_NEEDED
-FileSystem *fileSystem;
+FileSystem* fileSystem;
 #endif
 
 #ifdef FILESYS
-SynchDisk *synchDisk;
+SynchDisk* synchDisk;
 #endif
 
 #ifdef USER_PROGRAM  // Requires either *FILESYS* or *FILESYS_STUB*.
-Machine *machine;  ///< User program memory and registers.
+Machine* machine;  ///< User program memory and registers.
+SynchConsole* synchConsole;
+Bitmap* pageMap;
+Table<Thread*>* threadsTable;
 #endif
 
 #ifdef NETWORK
-PostOffice *postOffice;
+PostOffice* postOffice;
 #endif
 
 // External definition, to allow us to take a pointer to this function.
@@ -68,7 +73,7 @@ extern void Cleanup();
 /// * `dummy` is because every interrupt handler takes one argument, whether
 ///   it needs it or not.
 static void
-TimerInterruptHandler(void *dummy)
+TimerInterruptHandler(void* dummy)
 {
     if (interrupt->GetStatus() != IDLE_MODE) {
         interrupt->YieldOnReturn();
@@ -76,31 +81,35 @@ TimerInterruptHandler(void *dummy)
 }
 
 static bool
-ParseDebugOpts(char *s, DebugOpts *out)
+ParseDebugOpts(char* s, DebugOpts* out)
 {
     ASSERT(s != nullptr);
     ASSERT(out != nullptr);
 
-    char *save_p;
+    char* save_p;
     for (;; s = nullptr) {
-        char *token = strtok_r(s, ",", &save_p);
+        char* token = strtok_r(s, ",", &save_p);
         if (token == nullptr) {
             break;
         }
 
         if (strcmp(token, "location") == 0
-              || strcmp(token, "l") == 0) {
+            || strcmp(token, "l") == 0) {
             out->location = true;
-        } else if (strcmp(token, "function") == 0
-                     || strcmp(token, "f") == 0) {
+        }
+        else if (strcmp(token, "function") == 0
+            || strcmp(token, "f") == 0) {
             out->function = true;
-        } else if (strcmp(token, "sleep") == 0
-                     || strcmp(token, "s") == 0) {
+        }
+        else if (strcmp(token, "sleep") == 0
+            || strcmp(token, "s") == 0) {
             out->sleep = true;
-        } else if (strcmp(token, "interactive") == 0
-                     || strcmp(token, "i") == 0) {
+        }
+        else if (strcmp(token, "interactive") == 0
+            || strcmp(token, "i") == 0) {
             out->interactive = true;
-        } else {
+        }
+        else {
             return false;  // Invalid option.
         }
     }
@@ -121,12 +130,12 @@ ParseDebugOpts(char *s, DebugOpts *out)
 ///   Example:
 ///       nachos -d +  ->  argv = {"nachos", "-d", "+"}
 void
-Initialize(int argc, char **argv)
+Initialize(int argc, char** argv)
 {
     ASSERT(argc == 0 || argv != nullptr);
 
     int argCount;
-    const char *debugFlags = "";
+    const char* debugFlags = "";
     DebugOpts debugOpts;
     bool randomYield = false;
 
@@ -136,6 +145,9 @@ Initialize(int argc, char **argv)
 
 #ifdef USER_PROGRAM
     bool debugUserProg = false;  // Single step user program.
+    pageMap = new Bitmap(NUM_PHYS_PAGES);
+    threadsTable = new Table<Thread*>();
+    // synchConsole = new SynchConsole(NULL, NULL);
 #endif
 #ifdef FILESYS_NEEDED
     bool format = false;  // Format disk.
@@ -150,19 +162,22 @@ Initialize(int argc, char **argv)
         if (!strcmp(*argv, "-d")) {
             if (argc == 1) {
                 debugFlags = "+";  // Turn on all debug flags.
-            } else {
+            }
+            else {
                 debugFlags = *(argv + 1);
                 argCount = 2;
             }
-        } else if (!strcmp(*argv, "-do")) {
+        }
+        else if (!strcmp(*argv, "-do")) {
             ASSERT(argc > 1);
-            char *s = *(argv + 1);
+            char* s = *(argv + 1);
             ASSERT(ParseDebugOpts(s, &debugOpts));
             argCount = 2;
-        } else if (!strcmp(*argv, "-rs")) {
+        }
+        else if (!strcmp(*argv, "-rs")) {
             ASSERT(argc > 1);
             SystemDep::RandomInit(atoi(*(argv + 1)));
-              // Initialize pseudo-random number generator.
+            // Initialize pseudo-random number generator.
             randomYield = true;
             argCount = 2;
         }
@@ -171,8 +186,9 @@ Initialize(int argc, char **argv)
             preemptiveScheduling = true;
             if (argc == 1) {
                 timeSlice = DEFAULT_TIME_SLICE;
-            } else {
-                timeSlice = atoi(*(argv+1));
+            }
+            else {
+                timeSlice = atoi(*(argv + 1));
                 argCount = 2;
             }
         }
@@ -191,7 +207,8 @@ Initialize(int argc, char **argv)
             ASSERT(argc > 1);
             rely = atof(*(argv + 1));
             argCount = 2;
-        } else if (!strcmp(*argv, "-id")) {
+        }
+        else if (!strcmp(*argv, "-id")) {
             ASSERT(argc > 1);
             netname = atoi(*(argv + 1));
             argCount = 2;
@@ -207,6 +224,7 @@ Initialize(int argc, char **argv)
     if (randomYield) {           // Start the timer (if needed).
         timer = new Timer(TimerInterruptHandler, 0, randomYield);
     }
+
 
     threadToBeDestroyed = nullptr;
 
@@ -226,7 +244,12 @@ Initialize(int argc, char **argv)
     }
 
 #ifdef USER_PROGRAM
-    Debugger *d = debugUserProg ? new Debugger : nullptr;
+#ifdef TIME_SLICING
+    if (!randomYield) {
+        timer = new Timer(TimerInterruptHandler, 0, false);
+    }
+#endif
+    Debugger* d = debugUserProg ? new Debugger : nullptr;
     machine = new Machine(d);  // This must come first.
     SetExceptionHandlers();
 #endif
@@ -259,6 +282,8 @@ Cleanup()
 
 #ifdef USER_PROGRAM
     delete machine;
+    delete synchConsole;
+    delete threadsTable;
 #endif
 
 #ifdef FILESYS_NEEDED
