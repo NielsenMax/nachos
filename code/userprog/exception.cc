@@ -199,6 +199,13 @@ SyscallHandler(ExceptionType _et)
         }
 
         OpenFile *file = fileSystem->Open(filename);
+        if (file == nullptr)
+        {
+            DEBUG('a', "Error: file not found. \n");
+            machine->WriteRegister(2, -1);
+            break;
+        }
+
         int fileId = currentThread->AddFile(file);
 
         if (fileId == -1)
@@ -243,7 +250,21 @@ SyscallHandler(ExceptionType _et)
         }
 
         int size = machine->ReadRegister(5);
+        if (size < 0)
+        {
+            DEBUG('e', "Error: invalid size.\n");
+            machine->WriteRegister(2, -1);
+            break;
+        }
+
         int fileId = machine->ReadRegister(6);
+
+        if (fileId < 0)
+        {
+            DEBUG('e', "Error: invalid file ID.\n");
+            machine->WriteRegister(2, -1);
+            break;
+        }
 
         char *string = new char[size + 1];
         int read = 0;
@@ -279,9 +300,6 @@ SyscallHandler(ExceptionType _et)
     }
     case SC_WRITE:
     {
-        // int input = machine->ReadRegister(4);
-        // synchConsole->PutChar(input);
-        // DEBUG('e', "PUtting: %c on console.\n", input);
         int bufferAddr = machine->ReadRegister(4);
         if (bufferAddr == 0)
         {
@@ -291,7 +309,21 @@ SyscallHandler(ExceptionType _et)
         }
 
         int size = machine->ReadRegister(5);
+        if (size < 0)
+        {
+            DEBUG('e', "Error: invalid size.\n");
+            machine->WriteRegister(2, -1);
+            break;
+        }
+
         int fileId = machine->ReadRegister(6);
+
+        if (fileId < 0)
+        {
+            DEBUG('e', "Error: invalid file ID.\n");
+            machine->WriteRegister(2, -1);
+            break;
+        }
 
         char *string = new char[size + 1];
 

@@ -93,6 +93,13 @@ Thread::~Thread()
         delete channel;
     }
 #ifdef USER_PROGRAM
+    // First two open files reserved for console purposes.
+    for (unsigned i = 2; !fileTable->IsEmpty(); i++)
+    {
+        OpenFile *file = fileTable->Remove(i);
+        delete file;
+    }
+
     delete fileTable;
     threadsTable->Remove(spaceId);
     if (space != nullptr)
@@ -100,7 +107,7 @@ Thread::~Thread()
         delete space;
     }
 #endif
-    delete [] name;
+    delete[] name;
 }
 
 #ifdef USER_PROGRAM
@@ -110,7 +117,6 @@ int Thread::SetAddressSpace(AddressSpace *space_)
     return spaceId;
 }
 #endif
-
 
 int Thread::Join()
 {
