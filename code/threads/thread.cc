@@ -120,7 +120,7 @@ int Thread::SetAddressSpace(AddressSpace *space_)
 
 int Thread::Join()
 {
-    // ASSERT(joinable);
+    ASSERT(joinable);
 
     int result = 0;
     channel->Receive(&result);

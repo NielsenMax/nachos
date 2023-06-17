@@ -54,11 +54,11 @@ DefaultHandler(ExceptionType et)
 {
     int exceptionArg = machine->ReadRegister(2);
     fprintf(stderr, "Unexpected user mode exception: %s, arg %d.\n",
-            ExceptionTypeToString(et), exceptionArg);
+        ExceptionTypeToString(et), exceptionArg);
     ASSERT(false);
 }
 
-void runProgram(void *argv_)
+void runProgram(void* argv_)
 {
     currentThread->space->InitRegisters(); // Set the initial register values.
     currentThread->space->RestoreState();  // Load page table register.
@@ -67,7 +67,7 @@ void runProgram(void *argv_)
 
     if (argv_ != nullptr)
     {
-        char **argv = (char **)argv_;
+        char** argv = (char**)argv_;
 
         unsigned argc = WriteArgs(argv);
 
@@ -118,17 +118,17 @@ SyscallHandler(ExceptionType _et)
             break;
         }
 
-        char *filename = new char[FILE_NAME_MAX_LEN + 1];
+        char* filename = new char[FILE_NAME_MAX_LEN + 1];
         if (!ReadStringFromUser(filenameAddr,
-                                filename, FILE_NAME_MAX_LEN))
+            filename, FILE_NAME_MAX_LEN))
         {
             DEBUG('e', "Error: filename string too long (maximum is %u bytes).\n",
-                  FILE_NAME_MAX_LEN);
+                FILE_NAME_MAX_LEN);
             machine->WriteRegister(2, -1);
             break;
         }
         DEBUG('d', "[d] Filename to be exec %s\n", filename);
-        OpenFile *file = fileSystem->Open(filename);
+        OpenFile* file = fileSystem->Open(filename);
         if (file == nullptr)
         {
             DEBUG('e', "Error: file %s to be exec not found\n", filename);
@@ -136,13 +136,21 @@ SyscallHandler(ExceptionType _et)
             break;
         }
 
-        AddressSpace *newAddrSpace = new AddressSpace(file);
+        AddressSpace* newAddrSpace = new AddressSpace(file);
         // newAddrSpace->InitRegisters(); // Set the initial register values.
         // newAddrSpace->RestoreState();  // Load page table register.
 
-        Thread *newThread = new Thread(filename, bool(enableJoin), currentThread->GetPriority());
+        Thread* newThread = new Thread(filename, bool(enableJoin), currentThread->GetPriority());
 
         int spaceId = newThread->SetAddressSpace(newAddrSpace);
+
+        if (spaceId < 0) {
+            delete newThread;
+            delete file;
+            machine->WriteRegister(2, -1);
+            DEBUG('e', "Error creating new thread");
+            break;
+        }
 
         if (argvAddr == 0)
         {
@@ -169,7 +177,7 @@ SyscallHandler(ExceptionType _et)
         if (threadsTable->HasKey(spaceId))
         {
             DEBUG('d', "The user program %d exists\n", spaceId);
-            Thread *programThread = threadsTable->Get(spaceId);
+            Thread* programThread = threadsTable->Get(spaceId);
             int returnCode = programThread->Join();
             machine->WriteRegister(2, returnCode);
             break;
@@ -190,15 +198,15 @@ SyscallHandler(ExceptionType _et)
 
         char filename[FILE_NAME_MAX_LEN + 1];
         if (!ReadStringFromUser(filenameAddr,
-                                filename, sizeof filename))
+            filename, sizeof filename))
         {
             DEBUG('e', "Error: filename string too long (maximum is %u bytes).\n",
-                  FILE_NAME_MAX_LEN);
+                FILE_NAME_MAX_LEN);
             machine->WriteRegister(2, -1);
             break;
         }
 
-        OpenFile *file = fileSystem->Open(filename);
+        OpenFile* file = fileSystem->Open(filename);
         if (file == nullptr)
         {
             DEBUG('a', "Error: file not found. \n");
@@ -266,7 +274,7 @@ SyscallHandler(ExceptionType _et)
             break;
         }
 
-        char *string = new char[size + 1];
+        char* string = new char[size + 1];
         int read = 0;
         if (fileId != CONSOLE_INPUT)
         {
@@ -277,7 +285,7 @@ SyscallHandler(ExceptionType _et)
                 delete[] string;
                 break;
             }
-            OpenFile *file = currentThread->GetFile(fileId);
+            OpenFile* file = currentThread->GetFile(fileId);
             read = file->Read(string, size);
         }
         else
@@ -325,7 +333,7 @@ SyscallHandler(ExceptionType _et)
             break;
         }
 
-        char *string = new char[size + 1];
+        char* string = new char[size + 1];
 
         ReadBufferFromUser(bufferAddr, string, size);
 
@@ -339,7 +347,7 @@ SyscallHandler(ExceptionType _et)
                 delete[] string;
                 break;
             }
-            OpenFile *file = currentThread->GetFile(fileId);
+            OpenFile* file = currentThread->GetFile(fileId);
             writed = file->Write(string, size);
         }
         else
@@ -374,10 +382,10 @@ SyscallHandler(ExceptionType _et)
 
         char filename[FILE_NAME_MAX_LEN + 1];
         if (!ReadStringFromUser(filenameAddr,
-                                filename, sizeof filename))
+            filename, sizeof filename))
         {
             DEBUG('e', "Error: filename string too long (maximum is %u bytes).\n",
-                  FILE_NAME_MAX_LEN);
+                FILE_NAME_MAX_LEN);
             machine->WriteRegister(2, -1);
             break;
         }
@@ -420,10 +428,10 @@ SyscallHandler(ExceptionType _et)
 
         char filename[FILE_NAME_MAX_LEN + 1];
         if (!ReadStringFromUser(filenameAddr,
-                                filename, sizeof filename))
+            filename, sizeof filename))
         {
             DEBUG('e', "Error: filename string too long (maximum is %u bytes).\n",
-                  FILE_NAME_MAX_LEN);
+                FILE_NAME_MAX_LEN);
             machine->WriteRegister(2, -1);
             break;
         }
