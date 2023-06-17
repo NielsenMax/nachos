@@ -94,8 +94,9 @@ Thread::~Thread()
     }
 #ifdef USER_PROGRAM
     // First two open files reserved for console purposes.
-    for (unsigned i = 2; !fileTable->IsEmpty(); i++)
+    for (unsigned i = 2; !fileTable->IsEmpty() && fileTable->HasKey(i); i++)
     {
+        DEBUG('t', "Removing file %u.\n", i);
         OpenFile *file = fileTable->Remove(i);
         delete file;
     }
