@@ -140,12 +140,13 @@ int main(void)
         // Comment and uncomment according to whether command line arguments
         // are given in the system call or not.
         // const SpaceId newProc = Exec(line, 0, 1);
-        const SpaceId newProc = Exec(line, argv, 0);
+        
+        const SpaceId newProc = Exec(line, argv, !is_bg);
 
-        // if (!is_bg)
-        // {
-        //     Join(newProc);
-        // }
+        if (!is_bg)
+        {
+            Join(newProc);
+        }
 
         // TODO: check for errors when calling `Exec`; this depends on how
         //       errors are reported.

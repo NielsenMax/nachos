@@ -232,6 +232,12 @@ SyscallHandler(ExceptionType _et)
     {
         int fileId = machine->ReadRegister(4);
 
+        if(fileId == CONSOLE_INPUT || fileId == CONSOLE_OUTPUT){
+            DEBUG('e', "Error: Trying to remove stdin or stdout\n");
+            machine->WriteRegister(2, -1);
+            break;
+        }
+
         if (currentThread->HasFile(fileId))
         {
             currentThread->RemoveFile(fileId);
@@ -270,6 +276,11 @@ SyscallHandler(ExceptionType _et)
         if (fileId < 0)
         {
             DEBUG('e', "Error: invalid file ID.\n");
+            machine->WriteRegister(2, -1);
+            break;
+        }
+        if (fileId == CONSOLE_OUTPUT) {
+            DEBUG('e', "Error: trying to read stdout");
             machine->WriteRegister(2, -1);
             break;
         }
@@ -329,6 +340,11 @@ SyscallHandler(ExceptionType _et)
         if (fileId < 0)
         {
             DEBUG('e', "Error: invalid file ID.\n");
+            machine->WriteRegister(2, -1);
+            break;
+        }
+        if (fileId == CONSOLE_INPUT) {
+            DEBUG('e', "Error: trying to write to stdin");
             machine->WriteRegister(2, -1);
             break;
         }
