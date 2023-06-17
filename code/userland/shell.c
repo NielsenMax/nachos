@@ -124,11 +124,11 @@ int main(void)
 
         if (is_bg)
         {
-            for (int i = 0; i < MAX_LINE_SIZE - 1; i++)
+            for (int i = 0; i < lineSize; i++)
             {
                 line[i] = line[i + 1];
             }
-            line[MAX_LINE_SIZE - 1] = '\0'; // Add null character to the end of the string
+            line[lineSize - 1] = '\0'; // Add null character to the end of the string
         }
 
         if (PrepareArguments(line, argv, MAX_ARG_COUNT) == 0)
@@ -140,12 +140,12 @@ int main(void)
         // Comment and uncomment according to whether command line arguments
         // are given in the system call or not.
         // const SpaceId newProc = Exec(line, 0, 1);
-        const SpaceId newProc = Exec(line, argv, 1);
+        const SpaceId newProc = Exec(line, argv, 0);
 
-        if (!is_bg)
-        {
-            Join(newProc);
-        }
+        // if (!is_bg)
+        // {
+        //     Join(newProc);
+        // }
 
         // TODO: check for errors when calling `Exec`; this depends on how
         //       errors are reported.
