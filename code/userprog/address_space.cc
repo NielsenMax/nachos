@@ -24,9 +24,6 @@ AddressSpace::AddressSpace(OpenFile* _executable_file)
     executable_file = _executable_file;
     ASSERT(executable_file != nullptr);
 
-    executable_file = _executable_file;
-    ASSERT(executable_file != nullptr);
-
     Executable exe(executable_file);
     ASSERT(exe.CheckMagic());
 
@@ -61,8 +58,6 @@ AddressSpace::AddressSpace(OpenFile* _executable_file)
         pageTable[i].physicalPage = pageMap->Find(i);
 #else
         pageTable[i].physicalPage = pageMap->Find();
-#endif
-        pageTable[i].valid = true;
 #endif
         pageTable[i].valid = true;
 #endif
@@ -280,8 +275,6 @@ TranslationEntry* AddressSpace::LoadPage(unsigned virtualAddr)
 
     return &pageTable[virtualPage];
 };
-
-#ifdef SWAP_ENABLED
 
 #ifdef SWAP_ENABLED
 

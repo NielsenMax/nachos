@@ -55,8 +55,4 @@ void Coremap::Get(unsigned physicalPage){
 
    return;
 }
-
-unsigned Coremap::CountClear(){
-   return UINT_MAX;
-}
 #endif

@@ -188,22 +188,6 @@ SyscallHandler(ExceptionType _et)
         machine->WriteRegister(2, 1);
         break;
     }
-    case SC_JOIN:
-    {
-        int spaceId = machine->ReadRegister(4);
-
-        if (userPrograms->HasKey(spaceId))
-        {
-            DEBUG('d', "The user program %d exists\n", spaceId);
-            Thread *programThread = threadsTable->Get(spaceId);
-            int returnCode = programThread->Join();
-            machine->WriteRegister(2, returnCode);
-            break;
-        }
-
-        machine->WriteRegister(2, 1);
-        break;
-    }
     case SC_OPEN:
     {
         int filenameAddr = machine->ReadRegister(4);
