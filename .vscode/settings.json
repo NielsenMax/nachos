@@ -10,6 +10,8 @@
         "cstdint": "cpp",
         "type_traits": "cpp",
         "typeinfo": "cpp",
-        "syscall.h": "c"
+        "syscall.h": "c",
+        "numeric": "c",
+        "ostream": "c"
     }
 }

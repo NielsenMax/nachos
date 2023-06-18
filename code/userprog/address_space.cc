@@ -38,6 +38,8 @@ AddressSpace::AddressSpace(OpenFile* executable_file)
 
     // First, set up the translation.
 
+    char* mainMemory = machine->GetMMU()->mainMemory;
+
     pageTable = new TranslationEntry[numPages];
     for (unsigned i = 0; i < numPages; i++)
     {
@@ -47,17 +49,11 @@ AddressSpace::AddressSpace(OpenFile* executable_file)
         pageTable[i].valid = true;
         pageTable[i].use = false;
         pageTable[i].dirty = false;
-        pageTable[i].readOnly = false;
         // If the code segment was entirely on a separate page, we could
         // set its pages to be read-only.
-    }
-
-    char* mainMemory = machine->GetMMU()->mainMemory;
-
-    // Zero out the entire address space, to zero the unitialized data
-    // segment and the stack segment.
-    for (unsigned i = 0; i < numPages; i++)
-    {
+        pageTable[i].readOnly = false;
+        // Zero out the entire address space, to zero the unitialized data
+        // segment and the stack segment.
         memset(mainMemory + pageTable[i].physicalPage * PAGE_SIZE, 0, PAGE_SIZE);
     }
 
@@ -72,26 +68,31 @@ AddressSpace::AddressSpace(OpenFile* executable_file)
         unsigned codeOffset = 0;
         uint32_t leftOverSize = codeSize;
 
-        unsigned numCodePages = DivRoundUp(codeSize, PAGE_SIZE);
-
-        for (unsigned i = 0; i < numCodePages; i++)
+        while (leftOverSize > 0)
         {
             uint32_t virtualPage;
             uint32_t physicalAddr = TranslateVirtualAddrToPhysicalAddr(virtualAddr, &virtualPage);
 
-            if (i + 1 < numCodePages) {
-                pageTable[virtualPage].readOnly = true;
-            }
-
             uint32_t toRead = leftOverSize < PAGE_SIZE ? leftOverSize : PAGE_SIZE;
 
-            DEBUG('a', "Initializing code segment, at virtual address 0x%X, physical address 0x%X size %u\n",
+            uint32_t pageOffset = virtualAddr % PAGE_SIZE;
+            uint32_t pageRemaining = PAGE_SIZE - pageOffset;
+            DEBUG('d', "The page offset is %d\n", pageOffset);
+            if(pageRemaining < toRead){
+                toRead = pageRemaining;
+            }
+
+            DEBUG('d', "Initializing code segment, at virtual address 0x%X, physical address 0x%X size %u\n",
                 virtualAddr, physicalAddr, toRead);
 
             exe.ReadCodeBlock(&mainMemory[physicalAddr], toRead, codeOffset);
             codeOffset += toRead;
             leftOverSize -= toRead;
             virtualAddr += toRead;
+
+            if (leftOverSize > 0 && pageOffset == 0) {
+                pageTable[virtualPage].readOnly = true;
+            }
         };
     }
     if (initDataSize > 0)
@@ -101,7 +102,7 @@ AddressSpace::AddressSpace(OpenFile* executable_file)
         unsigned dataOffset = 0;
         uint32_t leftOverSize = initDataSize;
 
-        for (unsigned i = 0; i < DivRoundUp(initDataSize, PAGE_SIZE); i++)
+        while (leftOverSize > 0)
         {
             uint32_t virtualPage;
             uint32_t physicalAddr = TranslateVirtualAddrToPhysicalAddr(virtualAddr, &virtualPage);
@@ -111,7 +112,14 @@ AddressSpace::AddressSpace(OpenFile* executable_file)
 
             uint32_t toRead = leftOverSize < PAGE_SIZE ? leftOverSize : PAGE_SIZE;
 
-            DEBUG('a', "Initializing data segment, at virtual address 0x%X, physical address 0x%X size %u\n",
+            uint32_t pageOffset = virtualAddr % PAGE_SIZE;
+            uint32_t pageRemaining = PAGE_SIZE - pageOffset;
+            DEBUG('d', "The page offset is %d\n", pageOffset);
+            if(pageRemaining < toRead){
+                toRead = pageRemaining;
+            }
+
+            DEBUG('d', "Initializing data segment, at virtual address 0x%X, physical address 0x%X size %u\n",
                 virtualAddr, physicalAddr, toRead);
 
             exe.ReadDataBlock(&mainMemory[physicalAddr], toRead, dataOffset);
