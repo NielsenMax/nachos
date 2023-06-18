@@ -14,7 +14,6 @@
 /// All rights reserved.  See `copyright.h` for copyright notice and
 /// limitation of liability and disclaimer of warranty provisions.
 
-
 #include "condition.hh"
 #include <cstring>
 #include <stdio.h>
@@ -27,22 +26,21 @@
 Condition::Condition(const char *debugName, Lock *conditionLock_)
 {
     name = debugName;
+    waiting = 0;
     semName = new char[strlen(debugName) + 21];
     sprintf(semName, "ConditionSemaphore::%s", debugName);
-    signal = new Semaphore(semName, 0); 
+    signal = new Semaphore(semName, 0);
 
     conditionLock = conditionLock_;
 
     lockName = new char[strlen(debugName) + 16];
     sprintf(lockName, "ConditionLock::%s", debugName);
-    waitingLock = new Lock(lockName); 
 }
 
 Condition::~Condition()
 {
     delete signal;
     delete semName;
-    delete waitingLock;
     delete lockName;
 }
 
@@ -52,37 +50,33 @@ Condition::GetName() const
     return name;
 }
 
-void
-Condition::Wait()
+void Condition::Wait()
 {
-    ASSERT(conditionLock->IsHeldByCurrentThread());
+    // Notar que Lock ya chequea si el current thread tiene el lock en Release().
+    // ASSERT(conditionLock->IsHeldByCurrentThread());
 
-    waitingLock->Acquire();
     waiting++;
-    waitingLock->Release();
 
     conditionLock->Release();
     signal->P();
     conditionLock->Acquire();
 }
 
-void
-Condition::Signal()
+void Condition::Signal()
 {
-    waitingLock->Acquire();
-    if(waiting > 0) {
-        waiting--;
+    ASSERT(conditionLock->IsHeldByCurrentThread());
+    if (waiting > 0)
+    {
         signal->V();
+        waiting--;
     }
-    waitingLock->Release();
 }
 
-void
-Condition::Broadcast()
+void Condition::Broadcast()
 {
-    waitingLock->Acquire();
-    for(;waiting > 0;waiting--) {
+    ASSERT(conditionLock->IsHeldByCurrentThread());
+    for (; waiting > 0; waiting--)
+    {
         signal->V();
     }
-    waitingLock->Release();
 }

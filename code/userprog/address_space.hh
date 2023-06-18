@@ -17,7 +17,7 @@
 #include "machine/translation_entry.hh"
 // #include "threads/system.hh"
 
-#define SWAP_ENABLED 1
+// #define SWAP_ENABLED 1
 
 const unsigned USER_STACK_SIZE = 1024; ///< Increase this as necessary!
 
@@ -59,8 +59,6 @@ public:
     #endif
 
 private:
-    /// Assume linear page table translation for now!
-
     /// Number of pages in the virtual address space.
     OpenFile *executable_file;
     unsigned numPages;

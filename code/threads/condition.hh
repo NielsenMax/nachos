@@ -76,14 +76,10 @@ private:
     char * semName;
     char * lockName;
 
-    int waiting = 0;
-    Lock *waitingLock;
+    int waiting;
     Semaphore *signal;
 
     Lock *conditionLock;
-
-
-    // Other needed fields are to be added here.
 };
 
 
