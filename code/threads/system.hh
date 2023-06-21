@@ -63,6 +63,7 @@ extern FileSystem *fileSystem;
 
 #ifdef FILESYS
 #include "filesys/synch_disk.hh"
+class SynchDisk;
 extern SynchDisk *synchDisk;
 #endif
 

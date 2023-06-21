@@ -454,6 +454,20 @@ mmu.o: ../machine/mmu.cc ../machine/mmu.hh ../machine/exception_type.hh \
  ../machine/disk.hh ../lib/utility.hh ../lib/assert.hh ../lib/debug.hh \
  ../lib/debug_opts.hh ../machine/system_dep.hh \
  ../machine/translation_entry.hh ../machine/endianness.hh
+coremap.o: ../vmem/coremap.cc ../vmem/coremap.hh ../lib/bitmap.hh \
+ ../lib/utility.hh ../lib/assert.hh ../lib/debug.hh ../lib/debug_opts.hh \
+ ../machine/system_dep.hh ../filesys/open_file.hh ../lib/utility.hh \
+ ../threads/thread.hh ../machine/machine.hh ../machine/exception_type.hh \
+ ../machine/mmu.hh ../machine/disk.hh ../machine/translation_entry.hh \
+ ../machine/single_stepper.hh ../userprog/address_space.hh \
+ ../filesys/file_system.hh ../filesys/open_file.hh \
+ ../filesys/directory_entry.hh ../machine/disk.hh \
+ ../machine/translation_entry.hh ../lib/table.hh ../lib/list.hh \
+ ../lib/list.hh ../threads/system.hh ../threads/thread.hh \
+ ../threads/scheduler.hh ../machine/interrupt.hh ../machine/statistics.hh \
+ ../machine/timer.hh ../userprog/synch_console.hh ../machine/console.hh \
+ ../threads/lock.hh ../threads/semaphore.hh ../threads/system.hh \
+ ../filesys/synch_disk.hh ../threads/semaphore.hh
 directory.o: ../filesys/directory.cc ../filesys/directory.hh \
  ../filesys/raw_directory.hh ../filesys/open_file.hh ../lib/utility.hh \
  ../lib/assert.hh ../lib/debug.hh ../lib/debug_opts.hh \
@@ -718,6 +732,16 @@ mmu.o: ../machine/mmu.hh ../machine/exception_type.hh ../machine/disk.hh \
 translation_entry.o: ../machine/translation_entry.hh ../lib/utility.hh \
  ../lib/assert.hh ../lib/debug.hh ../lib/debug_opts.hh \
  ../machine/system_dep.hh
+coremap.o: ../vmem/coremap.hh ../lib/bitmap.hh ../lib/utility.hh \
+ ../lib/assert.hh ../lib/debug.hh ../lib/debug_opts.hh \
+ ../machine/system_dep.hh ../filesys/open_file.hh ../lib/utility.hh \
+ ../threads/thread.hh ../machine/machine.hh ../machine/exception_type.hh \
+ ../machine/mmu.hh ../machine/disk.hh ../machine/translation_entry.hh \
+ ../machine/single_stepper.hh ../userprog/address_space.hh \
+ ../filesys/file_system.hh ../filesys/open_file.hh \
+ ../filesys/directory_entry.hh ../machine/disk.hh \
+ ../machine/translation_entry.hh ../lib/table.hh ../lib/list.hh \
+ ../lib/list.hh
 directory.o: ../filesys/directory.hh ../filesys/raw_directory.hh \
  ../filesys/open_file.hh ../lib/utility.hh ../lib/assert.hh \
  ../lib/debug.hh ../lib/debug_opts.hh ../machine/system_dep.hh

@@ -13,6 +13,7 @@
 #include "threads/lock.hh"
 #include "threads/semaphore.hh"
 
+class Lock;
 
 /// The following class defines a "synchronous" disk abstraction.
 ///
