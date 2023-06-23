@@ -28,6 +28,7 @@
 
 #include <ctype.h>
 #include <stdio.h>
+#include <algorithm>
 
 
 /// Initialize a fresh file header for a newly created file.  Allocate data
@@ -47,13 +48,24 @@ FileHeader::Allocate(Bitmap *freeMap, unsigned fileSize)
 
     raw.numBytes = fileSize;
     raw.numSectors = DivRoundUp(fileSize, SECTOR_SIZE);
+    unsigned remaining = raw.numBytes;
+    unsigned numDirect = std::min(raw.numSectors, NUM_DIRECT);
+
     if (freeMap->CountClear() < raw.numSectors) {
         return false;  // Not enough space.
     }
 
-    for (unsigned i = 0; i < raw.numSectors; i++) {
+    for (unsigned i = 0; i < numDirect; i++) {
         raw.dataSectors[i] = freeMap->Find();
     }
+    remaining -= numDirect;
+    
+    raw.singleIndirection = freeMap->Find();
+    raw.doubleIndirection = freeMap->Find();
+    
+
+
+
     return true;
 }
 

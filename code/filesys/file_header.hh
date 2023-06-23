@@ -65,6 +65,8 @@ public:
 
 private:
     RawFileHeader raw;
+    RawFileIndirection firstInd;
+    RawFileIndirection secondInd;
 };
 
 
