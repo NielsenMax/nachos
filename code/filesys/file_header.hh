@@ -15,6 +15,7 @@
 
 #include "raw_file_header.hh"
 #include "lib/bitmap.hh"
+#include <vector>
 
 
 /// The following class defines the Nachos "file header" (in UNIX terms, the
@@ -65,8 +66,9 @@ public:
 
 private:
     RawFileHeader raw;
-    RawFileIndirection firstInd;
-    RawFileIndirection secondInd;
+    RawFileIndirection singleIndirection;
+    RawFileIndirection doubleIndirection;
+    std::vector<RawFileIndirection> doubleIndirectionArray;
 };
 
 
