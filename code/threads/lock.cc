@@ -15,6 +15,10 @@
 /// limitation of liability and disclaimer of warranty provisions.
 
 #include "lock.hh"
+
+#include "system.hh"
+#include "thread.hh"
+
 #include <cstring>
 #include <stdio.h>
 

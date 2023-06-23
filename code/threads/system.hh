@@ -15,11 +15,11 @@
 #include "machine/statistics.hh"
 #include "machine/timer.hh"
 
+
 // TODO: borrar.
 // #define USER_PROGRAM 1
 // #define FILESYS_NEEDED 1
 // #define SWAP_ENABLED 1 
-
 
 /// Initialization and cleanup routines.
 
@@ -57,7 +57,8 @@ extern Table<Thread*> *threadsTable;
 #endif
 
 #ifdef FILESYS_NEEDED // *FILESYS* or *FILESYS_STUB*.
-#include "filesys/file_system.hh"
+class FileSystem;
+
 extern FileSystem *fileSystem;
 #endif
 
