@@ -8,6 +8,8 @@
 
 #include "lock.hh"
 #include "condition.hh"
+#include "system.hh"
+
 #include <stdio.h>
 #include <cstring>
 

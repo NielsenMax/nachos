@@ -93,8 +93,10 @@ public:
 
 
 #include "directory_entry.hh"
+#include "directory.hh"
 #include "machine/disk.hh"
-
+#include "threads/lock.hh"
+#include "file_table.hh"
 
 /// Initial file sizes for the bitmap and directory; until the file system
 /// supports extensible files, the directory size sets the maximum number of
@@ -123,6 +125,9 @@ public:
     /// Open a file (UNIX `open`).
     OpenFile *Open(const char *name);
 
+    /// Close a file from openFiles, removes it if is necessary 
+    void Close(unsigned fileid);
+
     /// Delete a file (UNIX `unlink`).
     bool Remove(const char *name);
 
@@ -136,10 +141,19 @@ public:
     void Print();
 
 private:
+    void remove(const char* name, int sector, Directory* dir);
+
     OpenFile *freeMapFile;  ///< Bit map of free disk blocks, represented as a
                             ///< file.
+    char *nameFreeMapLock;
+    Lock *freeMapLock;
+
     OpenFile *directoryFile;  ///< “Root” directory -- list of file names,
                               ///< represented as a file.
+    char *nameDirectoryFile;
+    Lock *directoryFileLock;
+
+    FileTable* openFiles;
 };
 
 #endif

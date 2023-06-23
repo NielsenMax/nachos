@@ -85,13 +85,15 @@ private:
 };
 
 #else // FILESYS
+
+#include "rwlock.hh"
 class FileHeader;
 
 class OpenFile {
 public:
 
     /// Open a file whose header is located at `sector` on the disk.
-    OpenFile(int sector);
+    OpenFile(int sector, unsigned fileid, RWLock *lock);
 
     /// Close the file.
     ~OpenFile();
@@ -107,7 +109,7 @@ public:
 
     /// Read/write bytes from the file, bypassing the implicit position.
 
-    int ReadAt(char *into, unsigned numBytes, unsigned position);
+    int ReadAt(char *into, unsigned numBytes, unsigned position, bool shouldLock = true);
     int WriteAt(const char *from, unsigned numBytes, unsigned position);
 
     // Return the number of bytes in the file (this interface is simpler than
@@ -117,6 +119,8 @@ public:
   private:
     FileHeader *hdr;  ///< Header for this file.
     unsigned seekPosition;  ///< Current position within the file.
+    unsigned fileid; // Global fileid
+    RWLock* lock;
 };
 
 #endif
