@@ -11,15 +11,25 @@
 
 
 static const unsigned NUM_DIRECT
-  = (SECTOR_SIZE - 2 * sizeof (int)) / sizeof (int);
-const unsigned MAX_FILE_SIZE = NUM_DIRECT * SECTOR_SIZE;
+  = (SECTOR_SIZE - 4 * sizeof (int)) / sizeof (int);
 
 struct RawFileHeader {
     unsigned numBytes;  ///< Number of bytes in the file.
     unsigned numSectors;  ///< Number of data sectors in the file.
     unsigned dataSectors[NUM_DIRECT];  ///< Disk sector numbers for each data
                                        ///< block in the file.
+    int singleIndirection = -1;
+    int doubleIndirection = -1;
 };
 
+
+static const unsigned NUM_INDIRECT
+  = SECTOR_SIZE / sizeof (int);
+
+struct RawFileIndirection {
+  unsigned dataSectors[NUM_INDIRECT];
+};
+//                              v Direct   | v Single Ind | v Double Indirection
+const unsigned MAX_FILE_SIZE = (NUM_DIRECT + NUM_INDIRECT + NUM_INDIRECT * NUM_INDIRECT) * SECTOR_SIZE;
 
 #endif

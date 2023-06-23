@@ -28,6 +28,7 @@
 
 #include <ctype.h>
 #include <stdio.h>
+#include <algorithm>
 
 
 /// Initialize a fresh file header for a newly created file.  Allocate data
@@ -37,7 +38,7 @@
 /// * `freeMap` is the bit map of free disk sectors.
 /// * `fileSize` is the bit map of free disk sectors.
 bool
-FileHeader::Allocate(Bitmap *freeMap, unsigned fileSize)
+FileHeader::Allocate(Bitmap* freeMap, unsigned fileSize)
 {
     ASSERT(freeMap != nullptr);
 
@@ -47,12 +48,39 @@ FileHeader::Allocate(Bitmap *freeMap, unsigned fileSize)
 
     raw.numBytes = fileSize;
     raw.numSectors = DivRoundUp(fileSize, SECTOR_SIZE);
+    unsigned remaining = raw.numSectors;
+
     if (freeMap->CountClear() < raw.numSectors) {
         return false;  // Not enough space.
     }
 
-    for (unsigned i = 0; i < raw.numSectors; i++) {
+    unsigned numDirect = std::min(raw.numSectors, NUM_DIRECT);
+
+    for (unsigned i = 0; i < numDirect; i++) {
         raw.dataSectors[i] = freeMap->Find();
+    }
+
+    remaining -= numDirect;
+    if (remaining > 0) {
+        unsigned numFirstIndirection = std::min(remaining, NUM_INDIRECT);
+        raw.singleIndirection = freeMap->Find();
+        for (unsigned i = 0; i < numFirstIndirection; i++) { // Populate single indirection
+            singleIndirection.dataSectors[i] = freeMap->Find();
+        }
+        remaining -= numFirstIndirection;
+        if (remaining > 0) {
+            raw.doubleIndirection = freeMap->Find();
+            for (unsigned j = 0; remaining > 0; j++) { // Populate double indirecction
+                doubleIndirection.dataSectors[j] = freeMap->Find();
+                RawFileIndirection rawInd;
+                unsigned numSecondIndirection = std::min(remaining, NUM_INDIRECT);
+                for (unsigned i = 0; i < numSecondIndirection; i++) { // Populate each indirection
+                    rawInd.dataSectors[i] = freeMap->Find();
+                }
+                doubleIndirectionArray.push_back(rawInd);
+                remaining -= numSecondIndirection;
+            }
+        }
     }
     return true;
 }
@@ -61,13 +89,37 @@ FileHeader::Allocate(Bitmap *freeMap, unsigned fileSize)
 ///
 /// * `freeMap` is the bit map of free disk sectors.
 void
-FileHeader::Deallocate(Bitmap *freeMap)
+FileHeader::Deallocate(Bitmap* freeMap)
 {
     ASSERT(freeMap != nullptr);
 
-    for (unsigned i = 0; i < raw.numSectors; i++) {
+    unsigned remaining = raw.numSectors;
+
+    unsigned numDirect = std::min(raw.numSectors, NUM_DIRECT);
+    for (unsigned i = 0; i < numDirect; i++) {
         ASSERT(freeMap->Test(raw.dataSectors[i]));  // ought to be marked!
         freeMap->Clear(raw.dataSectors[i]);
+    }
+    remaining -= numDirect;
+    if (remaining > 0) {
+        unsigned numFirstIndirection = std::min(remaining, NUM_INDIRECT);
+        for (unsigned i = 0; i < numFirstIndirection; i++) {
+            freeMap->Clear(singleIndirection.dataSectors[i]);
+        }
+        freeMap->Clear(raw.singleIndirection);
+        remaining -= numFirstIndirection;
+        if (remaining > 0) {
+            for (unsigned j = 0; j < doubleIndirectionArray.size(); j++) { // Populate double indirecction
+                RawFileIndirection rawInd = doubleIndirectionArray[j];
+                unsigned numSecondIndirection = std::min(remaining, NUM_INDIRECT);
+                for (unsigned i = 0; i < numSecondIndirection; i++) { // Populate each indirection
+                    freeMap->Clear(rawInd.dataSectors[i]);
+                }
+                freeMap->Clear(doubleIndirection.dataSectors[j]);
+                remaining -= numSecondIndirection;
+            }
+            freeMap->Clear(raw.doubleIndirection);
+        }
     }
 }
 
@@ -77,7 +129,21 @@ FileHeader::Deallocate(Bitmap *freeMap)
 void
 FileHeader::FetchFrom(unsigned sector)
 {
-    synchDisk->ReadSector(sector, (char *) &raw);
+    synchDisk->ReadSector(sector, (char*)&raw);
+    if (raw.singleIndirection != -1) {
+        synchDisk->ReadSector(raw.singleIndirection, (char*)&singleIndirection);
+        if (raw.doubleIndirection != -1) {
+            synchDisk->ReadSector(raw.doubleIndirection, (char*)&doubleIndirection);
+            // Check this math, (sectors - direct sector - singleInd) / num of indirections = num of doubleInd used  
+            unsigned numDoubleIndirections = DivRoundUp(raw.numSectors - NUM_DIRECT - raw.singleIndirection, NUM_INDIRECT);
+            doubleIndirectionArray.clear();
+            for (unsigned i = 0; i < numDoubleIndirections; i++) {
+                RawFileIndirection fileInd;
+                synchDisk->ReadSector(doubleIndirection.dataSectors[i], (char*)&fileInd);
+                doubleIndirectionArray.push_back(fileInd);
+            }
+        }
+    }
 }
 
 /// Write the modified contents of the file header back to disk.
@@ -86,7 +152,17 @@ FileHeader::FetchFrom(unsigned sector)
 void
 FileHeader::WriteBack(unsigned sector)
 {
-    synchDisk->WriteSector(sector, (char *) &raw);
+    synchDisk->WriteSector(sector, (char*)&raw);
+    if (raw.singleIndirection != -1) {
+        synchDisk->WriteSector(raw.singleIndirection, (char*)&singleIndirection);
+        if (raw.doubleIndirection != -1) {
+            synchDisk->WriteSector(raw.doubleIndirection, (char*)&doubleIndirection);
+            for (unsigned i = 0; i < doubleIndirectionArray.size();i++) {
+                RawFileIndirection fileInd = doubleIndirectionArray[i];
+                synchDisk->WriteSector(doubleIndirection.dataSectors[i], (char*)&fileInd);
+            }
+        }
+    }
 }
 
 /// Return which disk sector is storing a particular byte within the file.
@@ -98,7 +174,17 @@ FileHeader::WriteBack(unsigned sector)
 unsigned
 FileHeader::ByteToSector(unsigned offset)
 {
-    return raw.dataSectors[offset / SECTOR_SIZE];
+    unsigned index = offset / SECTOR_SIZE;
+    if (index < NUM_DIRECT) {
+        return raw.dataSectors[index];
+    }
+    index -= NUM_DIRECT;
+    if (index < NUM_INDIRECT) {
+        return singleIndirection.dataSectors[index];
+    }
+    index -= NUM_INDIRECT;
+    unsigned doubleIndTable = index / NUM_INDIRECT;
+    return doubleIndirectionArray[doubleIndTable].dataSectors[index % NUM_INDIRECT];
 }
 
 /// Return the number of bytes in the file.
@@ -111,41 +197,92 @@ FileHeader::FileLength() const
 /// Print the contents of the file header, and the contents of all the data
 /// blocks pointed to by the file header.
 void
-FileHeader::Print(const char *title)
+FileHeader::Print(const char* title)
 {
-    char *data = new char [SECTOR_SIZE];
+    char* data = new char[SECTOR_SIZE];
 
     if (title == nullptr) {
         printf("File header:\n");
-    } else {
+    }
+    else {
         printf("%s file header:\n", title);
     }
 
     printf("    size: %u bytes\n"
-           "    block indexes: ",
-           raw.numBytes);
+        "    direct block indexes: ",
+        raw.numBytes);
 
-    for (unsigned i = 0; i < raw.numSectors; i++) {
+    unsigned remaining = raw.numSectors;
+    unsigned numDirect = std::min(raw.numSectors, NUM_DIRECT);
+
+    for (unsigned i = 0; i < numDirect; i++) {
         printf("%u ", raw.dataSectors[i]);
+    }
+    printf("\n");
+    remaining -= numDirect;
+    if (remaining > 0) {
+        printf("    single inderect header: %u\n",
+            raw.singleIndirection);
+        unsigned numFirstIndirection = std::min(remaining, NUM_INDIRECT);
+        printf("    single indirection block indexes: ");
+        for (unsigned i = 0; i < numFirstIndirection; i++) {
+            printf("%u ", singleIndirection.dataSectors[i]);
+        }
+        printf("\n");
+        remaining -= numFirstIndirection;
+        if (remaining > 0) {
+            printf("    double inderect header: %u\n",
+                raw.doubleIndirection);
+            for (unsigned j = 0; j < doubleIndirectionArray.size(); j++) {
+                printf("    double indirection block %u indexes: ", doubleIndirection.dataSectors[j]);
+                RawFileIndirection rawInd = doubleIndirectionArray[j];
+                unsigned numSecondIndirection = std::min(remaining, NUM_INDIRECT);
+                for (unsigned i = 0; i < numSecondIndirection; i++) {
+                    printf("%u ", rawInd.dataSectors[i]);
+                }
+                printf("\n");
+                remaining -= numSecondIndirection;
+            }
+        }
     }
     printf("\n");
 
     for (unsigned i = 0, k = 0; i < raw.numSectors; i++) {
-        printf("    contents of block %u:\n", raw.dataSectors[i]);
-        synchDisk->ReadSector(raw.dataSectors[i], data);
+        unsigned sector;
+        unsigned index = i;
+        if (i < NUM_DIRECT) {
+            sector = raw.dataSectors[index];
+        }
+        else {
+
+            index -= NUM_DIRECT;
+            if (i < NUM_INDIRECT) {
+                sector = singleIndirection.dataSectors[index];
+            }
+            else {
+
+                index -= NUM_INDIRECT;
+                unsigned doubleIndTable = index / NUM_INDIRECT;
+                sector = doubleIndirectionArray[doubleIndTable].dataSectors[index % NUM_INDIRECT];
+            }
+        }
+
+        printf("    contents of block %u:\n", sector);
+        synchDisk->ReadSector(sector, data);
         for (unsigned j = 0; j < SECTOR_SIZE && k < raw.numBytes; j++, k++) {
             if (isprint(data[j])) {
                 printf("%c", data[j]);
-            } else {
-                printf("\\%X", (unsigned char) data[j]);
+            }
+            else {
+                printf("\\%X", (unsigned char)data[j]);
             }
         }
         printf("\n");
     }
-    delete [] data;
+    delete[] data;
 }
 
-const RawFileHeader *
+const RawFileHeader*
 FileHeader::GetRaw() const
 {
     return &raw;
