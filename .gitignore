@@ -4,6 +4,7 @@ code/userland/*
 code/bin/*
 !code/bin/*.*
 !code/bin/Makefile
+code/filesys/DISK
 
 **/*.o
 **/*.coff

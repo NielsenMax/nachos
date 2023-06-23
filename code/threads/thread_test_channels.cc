@@ -7,6 +7,9 @@
 #include "thread_test_channels.hh"
 
 #include "channel.hh"
+
+#include "system.hh"
+
 #include <stdio.h>
 #include <cstring>
 #include <cstdlib>

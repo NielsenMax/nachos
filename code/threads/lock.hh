@@ -18,8 +18,8 @@
 #define NACHOS_THREADS_LOCK__HH
 
 #include "semaphore.hh"
-#include "thread.hh"
-#include "system.hh"
+
+class Thread;
 
 /// This class defines a “lock”.
 ///
