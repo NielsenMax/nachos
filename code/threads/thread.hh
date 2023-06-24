@@ -41,12 +41,18 @@
 #include "lib/utility.hh"
 
 // #define USER_PROGRAM 1
+#define FILESYS 1
 
 #ifdef USER_PROGRAM
 #include "machine/machine.hh"
 #include "userprog/address_space.hh"
 #include "lib/table.hh"
 #include "filesys/open_file.hh"
+#endif
+
+#ifdef FILESYS
+class Path;
+class RWLock;
 #endif
 
 #include <stdint.h>
@@ -144,6 +150,11 @@ public:
     int GetPriority();
     void SetPriority(int priority);
     void ResetPriority();
+
+#ifdef FILESYS
+    Path path;
+    RWLock *currentDirLock = nullptr;
+#endif
 
 private:
     // Some of the private data for this class is listed above.

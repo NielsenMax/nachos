@@ -20,6 +20,9 @@ class DirectoryEntry {
 public:
     /// Is this directory entry in use?
     bool inUse;
+
+    bool isDir;
+
     /// Location on disk to find the `FileHeader` for this file.
     unsigned sector;
     /// Text name for file, with +1 for the trailing `'\0'`.

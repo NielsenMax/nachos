@@ -47,6 +47,9 @@
 #include "file_header.hh"
 #include "lib/bitmap.hh"
 
+#include "path.hh"
+#include "threads/system.hh"
+
 #include <stdio.h>
 #include <string.h>
 
@@ -192,12 +195,21 @@ FileSystem::~FileSystem()
 /// * `name` is the name of file to be created.
 /// * `initialSize` is the size of file to be created.
 bool
-FileSystem::Create(const char* name, unsigned initialSize)
+FileSystem::Create(const char* name, unsigned initialSize, bool isDirectory)
 {
     ASSERT(name != nullptr);
     ASSERT(initialSize < MAX_FILE_SIZE);
-
+    if(isDirectory){
     DEBUG('f', "Creating file %s, size %u\n", name, initialSize);
+    }else {
+    DEBUG('f', "Creating file %s, size %u\n", name, initialSize);
+    }
+
+    Path path = currentThread->path;
+    path.Merge(name);
+    std::string file = path.Split();
+    directoryFileLock->Acquire();
+
 
     Directory* dir = new Directory(NUM_DIR_ENTRIES);
     directoryFileLock->Acquire();
@@ -238,6 +250,16 @@ FileSystem::Create(const char* name, unsigned initialSize)
     directoryFileLock->Release();
     delete dir;
     return success;
+}
+
+DirectoryEntry FileSystem::FindPath(Path *path){
+    DirectoryEntry entry;
+    entry.inUse = true;
+    entry.isDir = true;
+    entry.sector = DIRECTORY_SECTOR;
+
+    Directory* dir = new Directory();
+    for(auto& part: path->path){}
 }
 
 /// Open a file for reading and writing.
