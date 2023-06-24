@@ -343,6 +343,22 @@ void FileSystem::Close(unsigned fileid){
     }
 }
 
+bool FileSystem::Extend(FileHeader* hdr, unsigned fileid, unsigned extendSize){
+    unsigned sector = openFiles->GetFileSector(fileid);
+    freeMapLock->Acquire();
+    Bitmap* freeMap = new Bitmap(NUM_SECTORS);
+    freeMap->FetchFrom(freeMapFile);
+
+    if(!hdr->Extend(freeMap, extendSize)){
+        freeMapLock->Release();
+        return false;
+    }
+    hdr->WriteBack(sector);
+    freeMap->WriteBack(freeMapFile);
+    freeMapLock->Release();
+    return true;
+}
+
 /// List all the files in the file system directory.
 void
 FileSystem::List()
