@@ -187,6 +187,89 @@ FileHeader::ByteToSector(unsigned offset)
     return doubleIndirectionArray[doubleIndTable].dataSectors[index % NUM_INDIRECT];
 }
 
+bool FileHeader::Extend(Bitmap* freeMap, unsigned extendSize) {
+    ASSERT(freeMap != nullptr);
+
+    if (extendSize < raw.numBytes) {
+        return false;
+    }
+
+    // The new size is over the max
+    if (extendSize > MAX_FILE_SIZE) {
+        return false;
+    }
+
+    // No new space is needed because it fit on the already assign space
+    if (extendSize <= (raw.numSectors * SECTOR_SIZE)) {
+        raw.numBytes = extendSize;
+        return true;
+    }
+
+    unsigned sectorsNeeded = DivRoundUp(extendSize, SECTOR_SIZE) - raw.numSectors;
+    unsigned sectors = sectorsNeeded + raw.numSectors;
+    unsigned headersNeeded = 0;
+    if (raw.singleIndirection == -1 && sectors > NUM_DIRECT) {
+        headersNeeded++;
+    }
+    if (sectors > NUM_DIRECT + NUM_INDIRECT) {
+        unsigned doubleIndHeaders = DivRoundUp(sectors - (NUM_DIRECT + NUM_INDIRECT), NUM_INDIRECT);
+        if (raw.doubleIndirection == -1) {
+            headersNeeded += doubleIndHeaders + 1;
+        }
+        else {
+            headersNeeded += doubleIndHeaders - doubleIndirectionArray.size();
+        }
+    }
+    if (freeMap->CountClear() < sectorsNeeded + headersNeeded) {
+        return false;
+    }
+    // Direct sectors are available
+    if (raw.numSectors < NUM_DIRECT) {
+        for (unsigned i = raw.numSectors;i < NUM_DIRECT && sectorsNeeded > 0; i++) {
+            raw.dataSectors[i] = freeMap->Find();
+            sectorsNeeded--;
+        }
+    }
+    // Single indirect sectors are available
+    if (sectorsNeeded > 0 && raw.numSectors < NUM_DIRECT + NUM_INDIRECT) {
+        if (raw.singleIndirection == -1) {
+            raw.singleIndirection = freeMap->Find();
+        }
+        for (unsigned i = raw.numSectors - NUM_DIRECT; i < NUM_INDIRECT && sectorsNeeded > 0; i++) {
+            singleIndirection.dataSectors[i] = freeMap->Find();
+            sectorsNeeded--;
+        }
+    }
+    if (sectorsNeeded > 0) {
+        if (raw.doubleIndirection == -1) {
+            raw.doubleIndirection = freeMap->Find();
+        }
+        unsigned index = doubleIndirectionArray.size();
+        // If there space left on the current double indirection
+        unsigned sectorsOnDoubleInd = raw.numSectors - NUM_DIRECT - NUM_INDIRECT;
+        if (sectorsOnDoubleInd < (index) * NUM_INDIRECT) {
+            for (unsigned i = sectorsOnDoubleInd % NUM_INDIRECT; i < NUM_INDIRECT && sectorsNeeded > 0; i++) {
+                doubleIndirectionArray[index-1].dataSectors[i] = freeMap->Find();
+                sectorsNeeded--;
+            }
+        }
+        while(sectorsNeeded >0){
+            RawFileIndirection fileInd;
+            doubleIndirection.dataSectors[index] = freeMap->Find();
+            unsigned numDoubleInd = std::min(sectorsNeeded, NUM_INDIRECT);
+            for(unsigned i = 0; i<numDoubleInd; i++){
+                fileInd.dataSectors[i] = freeMap->Find();
+            }
+            doubleIndirectionArray.push_back(fileInd);
+            sectorsNeeded -= numDoubleInd;
+            index++;
+        }
+    }
+    raw.numBytes = extendSize;
+    raw.numSectors = DivRoundUp(raw.numBytes, SECTOR_SIZE);
+    return true;
+}
+
 /// Return the number of bytes in the file.
 unsigned
 FileHeader::FileLength() const
@@ -254,15 +337,13 @@ FileHeader::Print(const char* title)
             sector = raw.dataSectors[index];
         }
         else {
-
             index -= NUM_DIRECT;
-            if (i < NUM_INDIRECT) {
+            if (index < NUM_INDIRECT) {
                 sector = singleIndirection.dataSectors[index];
             }
             else {
-
                 index -= NUM_INDIRECT;
-                unsigned doubleIndTable = index / NUM_INDIRECT;
+                unsigned doubleIndTable = DivRoundDown(index, NUM_INDIRECT);
                 sector = doubleIndirectionArray[doubleIndTable].dataSectors[index % NUM_INDIRECT];
             }
         }

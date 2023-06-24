@@ -169,7 +169,13 @@ OpenFile::WriteAt(const char* from, unsigned numBytes, unsigned position)
         return 0;  // Check request.
     }
     if (position + numBytes > fileLength) {
-        numBytes = fileLength - position;
+        // numBytes = fileLength - position;
+        if(fileSystem->Extend(hdr, fileid, position + numBytes)){
+            fileLength = hdr->FileLength();
+        } else {
+            lock->Release();
+            return 0;
+        }
     }
     DEBUG('f', "Writing %u bytes at %u, from file of length %u.\n",
         numBytes, position, fileLength);

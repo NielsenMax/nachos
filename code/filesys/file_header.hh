@@ -45,6 +45,8 @@ public:
     /// Initialize file header from disk.
     void FetchFrom(unsigned sectorNumber);
 
+    bool Extend(Bitmap *freeMap, unsigned extendSize);
+
     /// Write modifications to file header back to disk.
     void WriteBack(unsigned sectorNumber);
 
