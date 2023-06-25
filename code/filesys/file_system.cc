@@ -46,6 +46,7 @@
 #include "directory.hh"
 #include "file_header.hh"
 #include "lib/bitmap.hh"
+#include "lib/utility.hh"
 
 #include "path.hh"
 #include "threads/system.hh"
@@ -78,13 +79,9 @@ FileSystem::FileSystem(bool format)
     sprintf(nameFreeMapLock, "FreeMapLock");
     freeMapLock = new Lock(nameFreeMapLock);
 
-    nameDirectoryFile = new char[19];
-    sprintf(nameDirectoryFile, "DirectoryFileLock");
-    directoryFileLock = new Lock(nameDirectoryFile);
-
     if (format) {
         Bitmap* freeMap = new Bitmap(NUM_SECTORS);
-        Directory* dir = new Directory(NUM_DIR_ENTRIES);
+        Directory* dir = new Directory();
         FileHeader* mapH = new FileHeader;
         FileHeader* dirH = new FileHeader;
 
@@ -109,6 +106,7 @@ FileSystem::FileSystem(bool format)
         DEBUG('f', "Writing headers back to disk.\n");
         mapH->WriteBack(FREE_MAP_SECTOR);
         dirH->WriteBack(DIRECTORY_SECTOR);
+        dir->SetSize(NUM_DIR_ENTRIES);
 
         // OK to open the bitmap and directory files now.
         // The file system operations assume these two files are left open
@@ -117,9 +115,8 @@ FileSystem::FileSystem(bool format)
         int fileid = openFiles->OpenFile(FREE_MAP_SECTOR, nullptr, &lock);
         freeMapFile = new OpenFile(FREE_MAP_SECTOR, fileid, lock);
 
-        lock = nullptr;
-        fileid = openFiles->OpenFile(FREE_MAP_SECTOR, nullptr, &lock);
-        directoryFile = new OpenFile(DIRECTORY_SECTOR, fileid, lock);
+        fileid = openFiles->OpenFile(FREE_MAP_SECTOR, "/", &directoryFileLock);
+        directoryFile = new OpenFile(DIRECTORY_SECTOR, fileid, directoryFileLock);
 
         // Once we have the files “open”, we can write the initial version of
         // each file back to disk.  The directory at this point is completely
@@ -145,13 +142,11 @@ FileSystem::FileSystem(bool format)
         // If we are not formatting the disk, just open the files
         // representing the bitmap and directory; these are left open while
         // Nachos is running.
-        RWLock* lock = nullptr;
-        int fileid = openFiles->OpenFile(FREE_MAP_SECTOR, nullptr, &lock);
-        freeMapFile = new OpenFile(FREE_MAP_SECTOR, fileid, lock);
+        int fileid = openFiles->OpenFile(FREE_MAP_SECTOR, nullptr);
+        freeMapFile = new OpenFile(FREE_MAP_SECTOR, fileid);
 
-        lock = nullptr;
-        fileid = openFiles->OpenFile(FREE_MAP_SECTOR, nullptr, &lock);
-        directoryFile = new OpenFile(DIRECTORY_SECTOR, fileid, lock);
+        fileid = openFiles->OpenFile(FREE_MAP_SECTOR, nullptr);
+        directoryFile = new OpenFile(DIRECTORY_SECTOR, fileid);
     }
 
 }
@@ -163,8 +158,6 @@ FileSystem::~FileSystem()
     delete [] nameFreeMapLock;
 
     delete directoryFile;
-    delete directoryFileLock;
-    delete [] nameDirectoryFile;
 
     delete openFiles;
 }
@@ -211,55 +204,84 @@ FileSystem::Create(const char* name, unsigned initialSize, bool isDirectory)
     directoryFileLock->Acquire();
 
 
-    Directory* dir = new Directory(NUM_DIR_ENTRIES);
+    Directory* dir = new Directory();
     directoryFileLock->Acquire();
-    dir->FetchFrom(directoryFile);
-
-    bool success;
-
-    if (dir->Find(name) != -1) {
-        success = false;  // File is already in directory.
+    DirectoryEntry entry;
+    bool r = FindPath(&path, &entry);
+    if(!r){
+        directoryFileLock->Release();
+        return false;
     }
-    else {
-        Bitmap* freeMap = new Bitmap(NUM_SECTORS);
+    RWLock *dirLock = nullptr;
+    int dirId = openFiles->OpenFile(entry.sector, entry.name, &dirLock);
+    directoryFileLock->Release(); // Its safe to release this lock 
+                                  // because we open the dir so it cant be remove
+    dirLock->Acquire();
+    OpenFile * dirFile = new OpenFile(entry.sector, dirId, dirLock);
+    Directory *dir = new Directory();
+    dir->FetchFrom(dirFile);
+
+    bool success = true;
+    if(dir->Find(file.c_str()) != -1){
+        success = false;
+    } else {
+        Bitmap *freeMap = new Bitmap(NUM_SECTORS);
         freeMapLock->Acquire();
         freeMap->FetchFrom(freeMapFile);
         int sector = freeMap->Find();
-        // Find a sector to hold the file header.
-        if (sector == -1) {
-            success = false;  // No free block for file header.
-        }
-        else if (!dir->Add(name, sector)) {
-            success = false;  // No space in directory.
-        }
-        else {
-            FileHeader* h = new FileHeader;
-            success = h->Allocate(freeMap, initialSize);
-            // Fails if no space on disk for data.
-            if (success) {
-                // Everything worked, flush all changes back to disk.
-                h->WriteBack(sector);
-                dir->WriteBack(directoryFile);
-                freeMap->WriteBack(freeMapFile);
+        if(sector == -1){
+            success = false;
+        } else {
+            bool mustExtend = dir->Add(file.c_str(), sector, isDirectory);
+            if(mustExtend){
+                success = dirFile->hdr->Extend(freeMap, dirFile->Length() + sizeof(DirectoryEntry));
             }
-            delete h;
+            if(success){
+                FileHeader *h = new FileHeader;
+                success = h->Allocate(freeMap, initialSize);
+                if(success){
+                    dirFile->hdr->WriteBack(openFiles->GetFileSector(dirId));
+                    h->WriteBack(sector);
+                    dir->WriteBack(dirFile);
+                    freeMap->WriteBack(freeMapFile);
+                    if(isDirectory){
+                        Directory* newDir = new Directory();
+                        newDir->SetSize(DivRoundUp(initialSize, (unsigned) sizeof(DirectoryEntry)));
+                        OpenFile *newDirFile = new OpenFile(sector);
+                        newDir->WriteBack(newDirFile);
+                        delete newDirFile;
+                        delete newDir;
+                    }
+                }
+                delete h;
+            }
         }
-        delete freeMap;
         freeMapLock->Release();
+        delete freeMap;
     }
-    directoryFileLock->Release();
+    dirLock->Release();
     delete dir;
+    delete dirFile;
     return success;
 }
 
-DirectoryEntry FileSystem::FindPath(Path *path){
-    DirectoryEntry entry;
-    entry.inUse = true;
-    entry.isDir = true;
-    entry.sector = DIRECTORY_SECTOR;
+bool FileSystem::FindPath(Path *path, DirectoryEntry *entry){
+    entry->inUse = true;
+    entry->isDir = true;
+    entry->sector = DIRECTORY_SECTOR;
 
     Directory* dir = new Directory();
-    for(auto& part: path->path){}
+    for(auto& part: path->path){
+        OpenFile* file = new OpenFile(entry->sector);
+        dir->FetchFrom(file);
+        int index = dir->FindIndex(part.c_str());
+        if(index < 0){
+            DEBUG('f', "Couldn't find file %s\n", part.c_str());
+            return false;
+        }
+        *entry = dir->GetRaw()->table[index]; 
+    }
+    return true;
 }
 
 /// Open a file for reading and writing.

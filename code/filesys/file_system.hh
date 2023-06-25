@@ -142,7 +142,7 @@ public:
     /// List all the files and their contents.
     void Print();
 
-    DirectoryEntry FindPath(Path* path);
+    bool FindPath(Path *path, DirectoryEntry *entry);
 
 
 private:
@@ -155,8 +155,7 @@ private:
 
     OpenFile *directoryFile;  ///< “Root” directory -- list of file names,
                               ///< represented as a file.
-    char *nameDirectoryFile;
-    Lock *directoryFileLock;
+    RWLock *directoryFileLock;
 
     FileTable* openFiles;
 };

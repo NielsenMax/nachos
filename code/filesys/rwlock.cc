@@ -33,7 +33,7 @@ RWLock::~RWLock(){
     delete [] nameWantsToWrite;
 }
 
-void RWLock::RAdquire() {
+void RWLock::RAcquire() {
     // Check for writers
     wantsToWrite->P();
     wantsToWrite->V();
@@ -56,7 +56,7 @@ void RWLock::RRelease() {
     readersLock->Release();
 }
 
-void RWLock::Adquire(){
+void RWLock::Acquire(){
     wantsToWrite->P();
     inUse->P();
 }

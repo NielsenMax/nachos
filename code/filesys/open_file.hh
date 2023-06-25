@@ -93,7 +93,7 @@ class OpenFile {
 public:
 
     /// Open a file whose header is located at `sector` on the disk.
-    OpenFile(int sector, unsigned fileid, RWLock *lock);
+    OpenFile(int sector, int fileid = -1, RWLock *lock = nullptr);
 
     /// Close the file.
     ~OpenFile();
@@ -116,10 +116,10 @@ public:
     // the UNIX idiom -- `lseek` to end of file, `tell`, `lseek` back).
     unsigned Length() const;
 
-  private:
     FileHeader *hdr;  ///< Header for this file.
+  private:
     unsigned seekPosition;  ///< Current position within the file.
-    unsigned fileid; // Global fileid
+    int fileid; // Global fileid
     RWLock* lock;
 };
 

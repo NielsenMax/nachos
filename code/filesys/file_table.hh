@@ -27,7 +27,7 @@ public:
 
     // Return the global fileid, the fileLock parameter is to get the rwlock
     // of the file
-    int OpenFile(unsigned sector, const char* name,RWLock** fileLock = nullptr);
+    int OpenFile(unsigned sector, const char* name, RWLock** fileLock = nullptr);
 
     // Return true if the file should be removed
     bool CloseFile(int fileid);
