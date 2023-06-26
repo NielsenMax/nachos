@@ -153,6 +153,9 @@ private:
     char *nameFreeMapLock;
     Lock *freeMapLock;
 
+    char *nameDirTreeLock;
+    RWLock *dirTreeLock;
+
     OpenFile *directoryFile;  ///< “Root” directory -- list of file names,
                               ///< represented as a file.
     RWLock *directoryFileLock;
