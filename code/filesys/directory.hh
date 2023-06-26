@@ -69,6 +69,8 @@ public:
 
     /// Find the index into the directory table corresponding to `name`.
     int FindIndex(const char *name);
+
+    bool IsEmpty();
 private:
 
     RawDirectory raw;

@@ -423,7 +423,7 @@ FileSystem::Remove(const char* name)
     dir->FetchFrom(dirFile);
     int index = dir->FindIndex(fileName.c_str());
     if (index < 0) {
-        dirLock->RRelease();
+        dirLock->Release();
         DEBUG('f', "Couldn't find file %s\n", fileName.c_str());
         delete dir;
         delete dirFile;
@@ -444,28 +444,29 @@ FileSystem::Remove(const char* name)
         entryLock->Acquire();
         Directory* toRemoveDir = new Directory();
         toRemoveDir->FetchFrom(entryFile);
-        // TODO
-        
+        if(!toRemoveDir->IsEmpty()){
+            entryLock->Release();
+            dirLock->Release();
+            delete toRemoveDir;
+            delete entryFile;
+            delete dir;
+            delete dirFile;
+            return false;
+        }
+        openFiles->SetRemove(entry.sector); // Never return true because we have an open reference to it
+        entryLock->Release();
+        delete toRemoveDir;
+        delete entryFile;
+    } else {
+        bool shouldRemove = openFiles->SetRemove(entry.sector);
+        if (shouldRemove) {
+            remove(name, entry.sector, dir);
+        }
     }
-
-    // Directory* dir = new Directory(NUM_DIR_ENTRIES);
-    // directoryFileLock->Acquire();
-    // dir->FetchFrom(directoryFile);
-    // int sector = dir->Find(name);
-    // if (sector == -1) {
-    //     delete dir;
-    //     directoryFileLock->Release();
-    //     return false;  // file not found
-    // }
-
-    // bool shouldRemove = openFiles->SetRemove(sector);
-
-    // if (shouldRemove) {
-    //     remove(name, sector, dir);
-    // }
-    // directoryFileLock->Release();
-    // delete dir;
-    // return true;
+    dirLock->Release();
+    delete dir;
+    delete dirFile;
+    return true;
 }
 
 void FileSystem::Close(unsigned fileid) {

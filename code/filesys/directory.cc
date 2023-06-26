@@ -226,3 +226,12 @@ void Directory::SetSize(unsigned size){
         raw.table[i].inUse = false;
     }
 }
+
+bool Directory::IsEmpty(){
+    for (unsigned i = 0; i < raw.tableSize; i++) {
+        if (raw.table[i].inUse) {
+            return false;
+        }
+    }
+    return true;
+}
