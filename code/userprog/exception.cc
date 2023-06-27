@@ -26,6 +26,7 @@
 #include "syscall.h"
 #include "filesys/directory_entry.hh"
 
+#include <string>
 #include <stdio.h>
 
 // #define USE_TLB 1
@@ -56,7 +57,7 @@ DefaultHandler(ExceptionType et)
 {
     int exceptionArg = machine->ReadRegister(2);
     fprintf(stderr, "Unexpected user mode exception: %s, arg %d.\n",
-            ExceptionTypeToString(et), exceptionArg);
+        ExceptionTypeToString(et), exceptionArg);
     ASSERT(false);
 }
 
@@ -64,6 +65,10 @@ void runProgram(void *argv_)
 {
     currentThread->space->InitRegisters(); // Set the initial register values.
     currentThread->space->RestoreState();  // Load page table register.
+
+#ifdef FILESYS
+    fileSystem->SetupThread();
+#endif
 
     DEBUG('e', "Running program.\n");
 
@@ -124,10 +129,10 @@ SyscallHandler(ExceptionType _et)
 
         char *filename = new char[FILE_NAME_MAX_LEN + 1];
         if (!ReadStringFromUser(filenameAddr,
-                                filename, FILE_NAME_MAX_LEN))
+            filename, FILE_NAME_MAX_LEN))
         {
             DEBUG('e', "Error: filename string too long (maximum is %u bytes).\n",
-                  FILE_NAME_MAX_LEN);
+                FILE_NAME_MAX_LEN);
             machine->WriteRegister(2, -1);
             break;
         }
@@ -140,11 +145,11 @@ SyscallHandler(ExceptionType _et)
             break;
         }
 
-        AddressSpace *newAddrSpace = new AddressSpace(file);
+        AddressSpace* newAddrSpace = new AddressSpace(file);
         // newAddrSpace->InitRegisters(); // Set the initial register values.
         // newAddrSpace->RestoreState();  // Load page table register.
 
-        Thread *newThread = new Thread(filename, bool(enableJoin), currentThread->GetPriority());
+        Thread* newThread = new Thread(filename, bool(enableJoin), currentThread->GetPriority());
 
         int spaceId = newThread->SetAddressSpace(newAddrSpace);
 
@@ -203,10 +208,10 @@ SyscallHandler(ExceptionType _et)
 
         char filename[FILE_NAME_MAX_LEN + 1];
         if (!ReadStringFromUser(filenameAddr,
-                                filename, sizeof filename))
+            filename, sizeof filename))
         {
             DEBUG('e', "Error: filename string too long (maximum is %u bytes).\n",
-                  FILE_NAME_MAX_LEN);
+                FILE_NAME_MAX_LEN);
             machine->WriteRegister(2, -1);
             break;
         }
@@ -303,7 +308,7 @@ SyscallHandler(ExceptionType _et)
                 delete[] string;
                 break;
             }
-            OpenFile *file = currentThread->GetFile(fileId);
+            OpenFile* file = currentThread->GetFile(fileId);
             read = file->Read(string, size);
         }
         else
@@ -371,7 +376,7 @@ SyscallHandler(ExceptionType _et)
                 delete[] string;
                 break;
             }
-            OpenFile *file = currentThread->GetFile(fileId);
+            OpenFile* file = currentThread->GetFile(fileId);
             writed = file->Write(string, size);
         }
         else
@@ -406,10 +411,10 @@ SyscallHandler(ExceptionType _et)
 
         char filename[FILE_NAME_MAX_LEN + 1];
         if (!ReadStringFromUser(filenameAddr,
-                                filename, sizeof filename))
+            filename, sizeof filename))
         {
             DEBUG('e', "Error: filename string too long (maximum is %u bytes).\n",
-                  FILE_NAME_MAX_LEN);
+                FILE_NAME_MAX_LEN);
             machine->WriteRegister(2, -1);
             break;
         }
@@ -452,10 +457,10 @@ SyscallHandler(ExceptionType _et)
 
         char filename[FILE_NAME_MAX_LEN + 1];
         if (!ReadStringFromUser(filenameAddr,
-                                filename, sizeof filename))
+            filename, sizeof filename))
         {
             DEBUG('e', "Error: filename string too long (maximum is %u bytes).\n",
-                  FILE_NAME_MAX_LEN);
+                FILE_NAME_MAX_LEN);
             machine->WriteRegister(2, -1);
             break;
         }
@@ -480,6 +485,77 @@ SyscallHandler(ExceptionType _et)
         scheduler->Print();
         break;
     }
+#ifdef FILESYS
+    case SC_MKDIR:
+    {
+        int dirNameAddr = machine->ReadRegister(4);
+        if (dirNameAddr == 0) {
+            DEBUG('e', "Error: address to dirname string is null.\n");
+            machine->WriteRegister(2, -1);
+            break;
+        }
+        char dirname[FILE_NAME_MAX_LEN + 1];
+        if (!ReadStringFromUser(dirNameAddr,
+            dirname, sizeof dirname))
+        {
+            DEBUG('e', "Error: dirname string too long (maximum is %u bytes).\n",
+                FILE_NAME_MAX_LEN);
+            machine->WriteRegister(2, -1);
+            break;
+        }
+        DEBUG('d', "Creating request for mkdir '%s'\n", dirname);
+        if (!fileSystem->mkdir(dirname)) {
+            DEBUG('e', "Error: creating dir %s.\n",
+                dirname);
+            machine->WriteRegister(2, -1);
+            break;
+        }
+        machine->WriteRegister(2, 0);
+        DEBUG('e', "Success: dirname %s created.\n", dirname);
+        break;
+    }
+    case SC_CHDIR: {
+        int dirnameAddr = machine->ReadRegister(4);
+        if (dirnameAddr == 0) {
+            DEBUG('e', "Error: address to dirname string is null.\n");
+            machine->WriteRegister(2, -1);
+            break;
+        }
+
+        char dirname[FILE_NAME_MAX_LEN + 1];
+        if (!ReadStringFromUser(dirnameAddr,
+                                dirname, sizeof dirname)) {
+            DEBUG('e', "Error: filename string too long (maximum is %u bytes).\n",
+                    FILE_NAME_MAX_LEN);
+            machine->WriteRegister(2, -1);
+            break;
+        }
+
+        DEBUG('d', "chdir request for name %s.\n", dirname);
+        if(!fileSystem->chdir(dirname)) {
+            DEBUG('e', "Error: couldn't open directory %s.\n", dirname);
+            machine->WriteRegister(2, -1);
+            break;
+        }
+        machine->WriteRegister(2, 0);
+        DEBUG('e', "Success: changing current path to directory %s.\n", dirname);
+        break;
+    }
+    case SC_PWD: {
+        int bufferUsr = machine->ReadRegister(4);
+        int size = machine->ReadRegister(5);
+        std::string path = currentThread->path.GetPath();
+        if (size < (int) path.length()) {
+            DEBUG('e', "Error: dirname %s failed creation.\n");
+            machine->WriteRegister(2, 0);
+            break;
+        }
+        WriteBufferToUser(path.c_str(), bufferUsr, path.size());
+        machine->WriteRegister(2, bufferUsr);
+        DEBUG('e', "Success: got directory %s.\n", path.c_str());
+        break;
+    }
+#endif
 
     default:
         fprintf(stderr, "Unexpected system call: id %d.\n", scid);

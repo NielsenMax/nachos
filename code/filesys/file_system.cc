@@ -119,7 +119,7 @@ FileSystem::FileSystem(bool format)
         int fileid = openFiles->OpenFile(FREE_MAP_SECTOR, nullptr, &lock);
         freeMapFile = new OpenFile(FREE_MAP_SECTOR, fileid, lock);
 
-        fileid = openFiles->OpenFile(FREE_MAP_SECTOR, "/", &directoryFileLock);
+        fileid = openFiles->OpenFile(FREE_MAP_SECTOR, nullptr, &directoryFileLock);
         directoryFile = new OpenFile(DIRECTORY_SECTOR, fileid, directoryFileLock);
 
         // Once we have the files “open”, we can write the initial version of
@@ -398,7 +398,6 @@ FileSystem::Remove(const char* name)
 
     Path path = currentThread->path;
     path.Merge(name);
-    const char* fileFullPath = path.GetPath().c_str();
     std::string fileName = path.Split(); // Path now contains the father directory
 
     // Find directory first
@@ -472,15 +471,36 @@ FileSystem::Remove(const char* name)
 void FileSystem::Close(unsigned fileid) {
     const char* name = openFiles->GetFileName(fileid);
     int sector = openFiles->GetFileSector(fileid);
+    Path path;
+    path.Merge(name);
+    path.Split(); // Get only the father directory
+
+    dirTreeLock->RAcquire();
+    DirectoryEntry dirEntry;
+    bool b = FindPath(&path, &dirEntry);
+    if(!b){
+        dirTreeLock->RRelease();
+        return;
+    }
+    RWLock* dirLock = nullptr;
+    int dirId = openFiles->OpenFile(dirEntry.sector, dirEntry.name, &dirLock);
+    if (dirId == -1) {
+        dirTreeLock->RRelease();
+        return;
+    }
+    OpenFile* dirFile = new OpenFile(dirEntry.sector, dirId, dirLock);
+    dirTreeLock->RRelease();
+
+    dirLock->Acquire();
     bool shouldBeRemove = openFiles->CloseFile(fileid);
     if (shouldBeRemove) {
-        Directory* dir = new Directory(NUM_DIR_ENTRIES);
-        directoryFileLock->Acquire();
-        dir->FetchFrom(directoryFile);
+        Directory* dir = new Directory();
+        dir->FetchFrom(dirFile);
         remove(name, sector, dir);
-        directoryFileLock->Release();
         delete dir;
     }
+    dirLock->Release();
+    delete dirFile;
 }
 
 bool FileSystem::Extend(FileHeader* hdr, unsigned fileid, unsigned extendSize) {
@@ -499,16 +519,95 @@ bool FileSystem::Extend(FileHeader* hdr, unsigned fileid, unsigned extendSize) {
     return true;
 }
 
+bool FileSystem::mkdir(const char *name){
+    return Create(name, DIRECTORY_FILE_SIZE, true);
+}
+
+bool FileSystem::chdir(const char *newPath){
+    Path path = currentThread->path;
+    path.Merge(newPath);
+
+    dirTreeLock->RAcquire();
+    DirectoryEntry newDirEntry;
+    bool b = FindPath(&path, &newDirEntry);
+    if(!b || (b && !newDirEntry.isDir)){
+        dirTreeLock->RRelease();
+        return false;
+    }
+    RWLock* newDirLock = nullptr;
+    int newDirId = openFiles->OpenFile(newDirEntry.sector, newDirEntry.name, &newDirLock);
+    if (newDirId == -1) {
+        dirTreeLock->RRelease();
+        return false;
+    }
+
+    // Get father directory of current file
+    Path currentDirPath = currentThread->path;
+    currentDirPath.Split(); 
+
+    DirectoryEntry currentDirEntry;
+    if(!FindPath(&path, &currentDirEntry)){
+        dirTreeLock->RRelease();
+        return false;
+    }
+    RWLock* currentDirLock = nullptr;
+    int currentDirId = openFiles->OpenFile(currentDirEntry.sector, currentDirEntry.name, &currentDirLock);
+    if (currentDirId == -1) {
+        dirTreeLock->RRelease();
+        return false;
+    }
+    OpenFile* currentDirFile = new OpenFile(currentDirEntry.sector, currentDirId, currentDirLock);
+    dirTreeLock->RRelease();
+
+    currentDirLock->Acquire();
+    const char* currentDirName = openFiles->GetFileName(currentThread->currentDirFileId);
+    int currentDirSector = openFiles->GetFileSector(currentThread->currentDirFileId);
+    if(openFiles->CloseFile(currentThread->currentDirFileId)){
+        Directory* dir = new Directory();
+        dir->FetchFrom(currentDirFile);
+        remove(currentDirName, currentDirSector, dir);
+        delete dir;
+    }
+    currentDirLock->Release();
+    delete currentDirFile;
+    currentThread->path = path;
+    currentThread->currentDirFileId = newDirId;
+    currentThread->currentDirLock = newDirLock;
+    return true;
+}
+
+void FileSystem::SetupThread(){
+    Path path = currentThread->path;
+    dirTreeLock->RAcquire();
+    DirectoryEntry dirEntry;
+    if(!FindPath(&path, &dirEntry)){
+        dirTreeLock->RRelease();
+        return;
+    }
+    RWLock* dirLock = nullptr;
+    int dirId = openFiles->OpenFile(dirEntry.sector, dirEntry.name, &dirLock);
+    if (dirId == -1) {
+        dirTreeLock->RRelease();
+        return;
+    }
+    currentThread->currentDirFileId = dirId;
+    currentThread->currentDirLock = dirLock;
+    dirTreeLock->Release();
+}
+
 /// List all the files in the file system directory.
 void
 FileSystem::List()
 {
-    Directory* dir = new Directory(NUM_DIR_ENTRIES);
-    directoryFileLock->Acquire();
-    dir->FetchFrom(directoryFile);
+    currentThread->currentDirLock->RAcquire();
+    int sector = openFiles->GetFileSector(currentThread->currentDirFileId);
+    OpenFile *dirFile = new OpenFile(sector, currentThread->currentDirFileId, currentThread->currentDirLock);
+    Directory* dir = new Directory();
+    dir->FetchFrom(dirFile);
     dir->List();
-    directoryFileLock->Release();
+    currentThread->currentDirLock->RRelease();
     delete dir;
+    delete dirFile;
 }
 
 static bool
@@ -670,7 +769,7 @@ FileSystem::Check()
     freeMapLock->Acquire();
     freeMap->FetchFrom(freeMapFile);
     freeMapLock->Release();
-    Directory* dir = new Directory(NUM_DIR_ENTRIES);
+    Directory* dir = new Directory();
     const RawDirectory* rdir = dir->GetRaw();
     directoryFileLock->Acquire();
     dir->FetchFrom(directoryFile);
@@ -703,7 +802,7 @@ FileSystem::Print()
     FileHeader* bitH = new FileHeader;
     FileHeader* dirH = new FileHeader;
     Bitmap* freeMap = new Bitmap(NUM_SECTORS);
-    Directory* dir = new Directory(NUM_DIR_ENTRIES);
+    Directory* dir = new Directory();
 
     printf("--------------------------------\n");
     bitH->FetchFrom(FREE_MAP_SECTOR);

@@ -154,6 +154,7 @@ public:
 #ifdef FILESYS
     Path path;
     RWLock *currentDirLock = nullptr;
+    int currentDirFileId = -1;
 #endif
 
 private:

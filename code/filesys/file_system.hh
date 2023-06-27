@@ -97,6 +97,7 @@ public:
 #include "machine/disk.hh"
 #include "threads/lock.hh"
 #include "file_table.hh"
+#include "path.hh"
 
 /// Initial file sizes for the bitmap and directory; until the file system
 /// supports extensible files, the directory size sets the maximum number of
@@ -144,6 +145,11 @@ public:
 
     bool FindPath(Path *path, DirectoryEntry *entry);
 
+    bool mkdir(const char *name);
+
+    bool chdir(const char *newPath);
+
+    void SetupThread();
 
 private:
     void remove(const char* name, int sector, Directory* dir);
