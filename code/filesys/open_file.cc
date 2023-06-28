@@ -63,23 +63,23 @@ OpenFile::Seek(unsigned position)
 /// * `numBytes` is the number of bytes to transfer.
 
 int
-OpenFile::Read(char* into, unsigned numBytes)
+OpenFile::Read(char* into, unsigned numBytes, bool shouldLock)
 {
     ASSERT(into != nullptr);
     ASSERT(numBytes > 0);
 
-    int result = ReadAt(into, numBytes, seekPosition);
+    int result = ReadAt(into, numBytes, seekPosition,shouldLock);
     seekPosition += result;
     return result;
 }
 
 int
-OpenFile::Write(const char* into, unsigned numBytes)
+OpenFile::Write(const char* into, unsigned numBytes, bool shouldLock)
 {
     ASSERT(into != nullptr);
     ASSERT(numBytes > 0);
 
-    int result = WriteAt(into, numBytes, seekPosition);
+    int result = WriteAt(into, numBytes, seekPosition, shouldLock);
     seekPosition += result;
     return result;
 }
@@ -156,11 +156,11 @@ OpenFile::ReadAt(char* into, unsigned numBytes, unsigned position, bool shouldLo
 }
 
 int
-OpenFile::WriteAt(const char* from, unsigned numBytes, unsigned position)
+OpenFile::WriteAt(const char* from, unsigned numBytes, unsigned position, bool shouldLock)
 {
     ASSERT(from != nullptr);
     ASSERT(numBytes > 0);
-    bool shouldLock = lock != nullptr;
+    shouldLock &= lock != nullptr;
     if (shouldLock) {
         lock->Acquire();
     }

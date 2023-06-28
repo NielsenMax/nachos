@@ -61,11 +61,11 @@ void
 Directory::FetchFrom(OpenFile* file)
 {
     ASSERT(file != nullptr);
-    file->ReadAt((char*)&raw.tableSize, sizeof(unsigned), 0); // REad the first unsigned of the struct, aka the table size
+    file->ReadAt((char*)&raw.tableSize, sizeof(unsigned), 0, false); // REad the first unsigned of the struct, aka the table size
     if (raw.tableSize > 0) {
         raw.table = new DirectoryEntry[raw.tableSize];
         file->ReadAt((char*)raw.table,
-            raw.tableSize * sizeof(DirectoryEntry), sizeof(unsigned)); // Skip the table size
+            raw.tableSize * sizeof(DirectoryEntry), sizeof(unsigned), false); // Skip the table size
     }
 
 }
@@ -77,12 +77,12 @@ void
 Directory::WriteBack(OpenFile* file)
 {
     ASSERT(file != nullptr);
-    file->WriteAt((char*)&raw.tableSize, sizeof(unsigned), 0);
+    file->WriteAt((char*)&raw.tableSize, sizeof(unsigned), 0, false);
     DEBUG('d', "Table size %u\n", raw.tableSize);
     DEBUG('d', "Going to write %u to %x\n", raw.tableSize * sizeof(DirectoryEntry), raw.table);
     if (raw.tableSize > 0) {
         file->WriteAt((char*)raw.table,
-            raw.tableSize * sizeof(DirectoryEntry), sizeof(unsigned));
+            raw.tableSize * sizeof(DirectoryEntry), sizeof(unsigned), false);
     }
 }
 

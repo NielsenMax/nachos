@@ -75,10 +75,6 @@ FileSystem::FileSystem(bool format)
     DEBUG('f', "Initializing the file system.\n");
     openFiles = new FileTable();
 
-    nameFreeMapLock = new char[13];
-    sprintf(nameFreeMapLock, "FreeMapLock");
-    freeMapLock = new Lock(nameFreeMapLock);
-
     nameDirTreeLock = new char[13];
     sprintf(nameDirTreeLock, "DirTreeLock");
     dirTreeLock = new RWLock(nameDirTreeLock);
@@ -115,11 +111,10 @@ FileSystem::FileSystem(bool format)
         // OK to open the bitmap and directory files now.
         // The file system operations assume these two files are left open
         // while Nachos is running.
-        RWLock* lock = nullptr;
-        int fileid = openFiles->OpenFile(FREE_MAP_SECTOR, nullptr, &lock);
-        freeMapFile = new OpenFile(FREE_MAP_SECTOR, fileid, lock);
+        int fileid = openFiles->OpenFile(FREE_MAP_SECTOR, nullptr, &freeMapLock);
+        freeMapFile = new OpenFile(FREE_MAP_SECTOR, fileid, freeMapLock);
 
-        fileid = openFiles->OpenFile(FREE_MAP_SECTOR, nullptr, &directoryFileLock);
+        fileid = openFiles->OpenFile(DIRECTORY_SECTOR, nullptr, &directoryFileLock);
         directoryFile = new OpenFile(DIRECTORY_SECTOR, fileid, directoryFileLock);
 
         // Once we have the files “open”, we can write the initial version of
@@ -146,11 +141,11 @@ FileSystem::FileSystem(bool format)
         // If we are not formatting the disk, just open the files
         // representing the bitmap and directory; these are left open while
         // Nachos is running.
-        int fileid = openFiles->OpenFile(FREE_MAP_SECTOR, nullptr);
-        freeMapFile = new OpenFile(FREE_MAP_SECTOR, fileid);
+        int fileid = openFiles->OpenFile(FREE_MAP_SECTOR, nullptr, &freeMapLock);
+        freeMapFile = new OpenFile(FREE_MAP_SECTOR, fileid, freeMapLock);
 
-        fileid = openFiles->OpenFile(FREE_MAP_SECTOR, nullptr);
-        directoryFile = new OpenFile(DIRECTORY_SECTOR, fileid);
+        fileid = openFiles->OpenFile(DIRECTORY_SECTOR, nullptr, &directoryFileLock);
+        directoryFile = new OpenFile(DIRECTORY_SECTOR, fileid, directoryFileLock);
     }
 
 }
@@ -158,8 +153,6 @@ FileSystem::FileSystem(bool format)
 FileSystem::~FileSystem()
 {
     delete freeMapFile;
-    delete freeMapLock;
-    delete[] nameFreeMapLock;
 
     delete directoryFile;
 
@@ -197,7 +190,7 @@ FileSystem::Create(const char* name, unsigned initialSize, bool isDirectory)
     ASSERT(name != nullptr);
     ASSERT(initialSize < MAX_FILE_SIZE);
     if (isDirectory) {
-        DEBUG('f', "Creating file %s, size %u\n", name, initialSize);
+        DEBUG('f', "Creating directory %s, size %u\n", name, initialSize);
     }
     else {
         DEBUG('f', "Creating file %s, size %u\n", name, initialSize);
@@ -209,45 +202,61 @@ FileSystem::Create(const char* name, unsigned initialSize, bool isDirectory)
 
     dirTreeLock->RAcquire();
     DirectoryEntry entry;
-    bool r = FindPath(&path, &entry);
-    if (!r) {
+    if (!FindPath(&path, &entry)) {
         dirTreeLock->RRelease();
+        DEBUG('f', "Entry not found\n");
         return false;
     }
+    DEBUG('d', "Entry sector is %u\n", entry.sector);
+
     RWLock* dirLock = nullptr;
     int dirId = openFiles->OpenFile(entry.sector, entry.name, &dirLock);
     dirTreeLock->RRelease(); // Its safe to release this lock 
-    // because we open the dir so it cant be remove
+                             // because we open the dir so it cant be remove
+    DEBUG('f', "Adquiring dirlock\n");
     dirLock->Acquire();
+    DEBUG('f', "Adquired dirlock\n");
+
     OpenFile* dirFile = new OpenFile(entry.sector, dirId, dirLock);
     Directory* dir = new Directory();
+    DEBUG('f', "Calling fetchFrom on dir\n");
+
     dir->FetchFrom(dirFile);
 
     bool success = true;
+    DEBUG('f', "Calling find on dir\n");
     if (dir->Find(file.c_str()) != -1) {
-        success = false;
+        DEBUG('f', "File already exist\n");
+        success = false; // File already exist
     }
     else {
         Bitmap* freeMap = new Bitmap(NUM_SECTORS);
+        DEBUG('f', "Adquiring free map\n");
         freeMapLock->Acquire();
         freeMap->FetchFrom(freeMapFile);
         int sector = freeMap->Find();
+
         if (sector == -1) {
-            success = false;
+            DEBUG('f', "No space left\n");
+            success = false; // No space
         }
         else {
+            DEBUG('f', "Calling add\n");
             bool mustExtend = dir->Add(file.c_str(), sector, isDirectory);
+            DEBUG('f', "Is the extend needed?  %u\n", mustExtend);
             if (mustExtend) {
                 success = dirFile->hdr->Extend(freeMap, dirFile->Length() + sizeof(DirectoryEntry));
+            DEBUG('f', "The extend was successful %u\n", success);
             }
             if (success) {
                 FileHeader* h = new FileHeader;
                 success = h->Allocate(freeMap, initialSize);
                 if (success) {
-                    dirFile->hdr->WriteBack(openFiles->GetFileSector(dirId));
+                    dirFile->hdr->WriteBack(entry.sector);
                     h->WriteBack(sector);
                     dir->WriteBack(dirFile);
                     freeMap->WriteBack(freeMapFile);
+                    DEBUG('f', "File written\n");
                     if (isDirectory) {
                         Directory* newDir = new Directory();
                         newDir->SetSize(DivRoundUp(initialSize, (unsigned)sizeof(DirectoryEntry)));
@@ -264,6 +273,7 @@ FileSystem::Create(const char* name, unsigned initialSize, bool isDirectory)
         delete freeMap;
     }
     dirLock->Release();
+    DEBUG('f', "Succesfull create %u\n", success);
     delete dir;
     delete dirFile;
     return success;
@@ -313,6 +323,7 @@ FileSystem::Open(const char* name)
     DirectoryEntry dirEntry;
     bool r = FindPath(&path, &dirEntry);
     if (!r) {
+        DEBUG('f', "DirEntry not find\n");
         dirTreeLock->Release();
         return nullptr;
     }
@@ -320,6 +331,7 @@ FileSystem::Open(const char* name)
     int dirId = openFiles->OpenFile(dirEntry.sector, dirEntry.name, &dirLock);
     if (dirId == -1) {
         dirTreeLock->Release();
+        DEBUG('f', "Coudnt open dir file\n");
         return nullptr;
     }
     OpenFile* dirFile = new OpenFile(dirEntry.sector, dirId, dirLock);
@@ -329,6 +341,7 @@ FileSystem::Open(const char* name)
     dirLock->RAcquire();
     Directory* dir = new Directory();
     dir->FetchFrom(dirFile);
+
     int index = dir->FindIndex(fileName.c_str());
     if (index < 0) {
         dirLock->RRelease();

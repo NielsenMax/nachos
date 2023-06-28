@@ -74,9 +74,6 @@ Copy(const char *from, const char *to)
     int fileLength = ftell(fp);
     fseek(fp, 0, 0);
 
-    DEBUG('f', "Copying file %s, size %u, to file %s\n",
-          from, fileLength, to);
-
     // Create a Nachos file of the same length.
     if (!fileSystem->Create(to, fileLength)) {  // Create Nachos file.
         printf("Copy: could not create output file %s\n", to);
@@ -84,7 +81,11 @@ Copy(const char *from, const char *to)
         return;
     }
 
+    DEBUG('f', "Copying file %s, size %u, to file %s\n",
+          from, fileLength, to);
+
     OpenFile *openFile = fileSystem->Open(to);
+    printf("the open fileid is %p\n", openFile);
     ASSERT(openFile != nullptr);
 
     // Copy the data in `TRANSFER_SIZE` chunks.
@@ -94,7 +95,8 @@ Copy(const char *from, const char *to)
                                TRANSFER_SIZE, fp)) > 0)
         openFile->Write(buffer, amountRead);
     delete [] buffer;
-    printf("The ampount readed is %d", amountRead);
+
+    printf("The amount readed is %d", amountRead);
     // Close the UNIX and the Nachos files.
     delete openFile;
     fclose(fp);

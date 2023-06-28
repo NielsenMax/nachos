@@ -104,13 +104,13 @@ public:
     /// Read/write bytes from the file, starting at the implicit position.
     /// Return the # actually read/written, and increment position in file.
 
-    int Read(char *into, unsigned numBytes);
-    int Write(const char *from, unsigned numBytes);
+    int Read(char *into, unsigned numBytes, bool shouldLock = true);
+    int Write(const char *from, unsigned numBytes, bool shouldLock = true);
 
     /// Read/write bytes from the file, bypassing the implicit position.
 
     int ReadAt(char *into, unsigned numBytes, unsigned position, bool shouldLock = true);
-    int WriteAt(const char *from, unsigned numBytes, unsigned position);
+    int WriteAt(const char *from, unsigned numBytes, unsigned position, bool shouldLock = true);
 
     // Return the number of bytes in the file (this interface is simpler than
     // the UNIX idiom -- `lseek` to end of file, `tell`, `lseek` back).

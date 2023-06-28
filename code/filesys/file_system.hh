@@ -156,8 +156,7 @@ private:
 
     OpenFile *freeMapFile;  ///< Bit map of free disk blocks, represented as a
                             ///< file.
-    char *nameFreeMapLock;
-    Lock *freeMapLock;
+    RWLock *freeMapLock;
 
     char *nameDirTreeLock;
     RWLock *dirTreeLock;
