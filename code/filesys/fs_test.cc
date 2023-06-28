@@ -30,6 +30,31 @@
 static const unsigned TRANSFER_SIZE = 10;  // Make it small, just to be
                                            // difficult.
 
+
+/// Print the contents of the Nachos file `name`.
+void
+Print(const char *name)
+{
+    ASSERT(name != nullptr);
+
+    OpenFile *openFile = fileSystem->Open(name);
+    if (openFile == nullptr) {
+        fprintf(stderr, "Print: unable to open file %s\n", name);
+        return;
+    }
+
+    char *buffer = new char [TRANSFER_SIZE];
+    int amountRead;
+    while ((amountRead = openFile->Read(buffer, TRANSFER_SIZE)) > 0) {
+        for (unsigned i = 0; i < (unsigned) amountRead; i++) {
+            printf("%c", buffer[i]);
+        }
+    }
+
+    delete [] buffer;
+    delete openFile;  // close the Nachos file
+}
+
 /// Copy the contents of the UNIX file `from` to the Nachos file `to`.
 void
 Copy(const char *from, const char *to)
@@ -69,36 +94,12 @@ Copy(const char *from, const char *to)
                                TRANSFER_SIZE, fp)) > 0)
         openFile->Write(buffer, amountRead);
     delete [] buffer;
-
+    printf("The ampount readed is %d", amountRead);
     // Close the UNIX and the Nachos files.
     delete openFile;
     fclose(fp);
+    Print(to);
 }
-
-/// Print the contents of the Nachos file `name`.
-void
-Print(const char *name)
-{
-    ASSERT(name != nullptr);
-
-    OpenFile *openFile = fileSystem->Open(name);
-    if (openFile == nullptr) {
-        fprintf(stderr, "Print: unable to open file %s\n", name);
-        return;
-    }
-
-    char *buffer = new char [TRANSFER_SIZE];
-    int amountRead;
-    while ((amountRead = openFile->Read(buffer, TRANSFER_SIZE)) > 0) {
-        for (unsigned i = 0; i < (unsigned) amountRead; i++) {
-            printf("%c", buffer[i]);
-        }
-    }
-
-    delete [] buffer;
-    delete openFile;  // close the Nachos file
-}
-
 
 /// Performance test
 ///

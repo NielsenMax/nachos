@@ -169,7 +169,7 @@ OpenFile::WriteAt(const char* from, unsigned numBytes, unsigned position)
     bool firstAligned, lastAligned;
     char* buf;
 
-    if (position >= fileLength) {
+    if (position > fileLength) {
         if (shouldLock) {
             lock->Release();
         }

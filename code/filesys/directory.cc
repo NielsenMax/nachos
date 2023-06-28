@@ -78,6 +78,8 @@ Directory::WriteBack(OpenFile* file)
 {
     ASSERT(file != nullptr);
     file->WriteAt((char*)&raw.tableSize, sizeof(unsigned), 0);
+    DEBUG('d', "Table size %u\n", raw.tableSize);
+    DEBUG('d', "Going to write %u to %x\n", raw.tableSize * sizeof(DirectoryEntry), raw.table);
     if (raw.tableSize > 0) {
         file->WriteAt((char*)raw.table,
             raw.tableSize * sizeof(DirectoryEntry), sizeof(unsigned));
@@ -184,8 +186,10 @@ Directory::Remove(const char* name)
 void
 Directory::List() const
 {
+    DEBUG('d', "THE SIZE OF THE TABLE IS %u\n", raw.tableSize);
     for (unsigned i = 0; i < raw.tableSize; i++) {
         if (raw.table[i].inUse) {
+        DEBUG('d', "THE file %s is in use\n", raw.table[i].name);
             printf("%s\n", raw.table[i].name);
         }
     }

@@ -198,8 +198,8 @@ FileSystem::Create(const char* name, unsigned initialSize, bool isDirectory)
     ASSERT(initialSize < MAX_FILE_SIZE);
     if (isDirectory) {
         DEBUG('f', "Creating file %s, size %u\n", name, initialSize);
-    }    
-else {
+    }
+    else {
         DEBUG('f', "Creating file %s, size %u\n", name, initialSize);
     }
 
@@ -285,7 +285,9 @@ bool FileSystem::FindPath(Path* path, DirectoryEntry* entry) {
             return false;
         }
         *entry = dir->GetRaw()->table[index];
+        delete file;
     }
+    delete dir;
     return true;
 }
 
@@ -430,7 +432,7 @@ FileSystem::Remove(const char* name)
     }
 
     DirectoryEntry entry = dir->GetRaw()->table[index];
-    if(entry.isDir){
+    if (entry.isDir) {
         RWLock* entryLock = nullptr;
         int entryId = openFiles->OpenFile(entry.sector, entry.name, &entryLock);
         if (entryId == -1) {
@@ -443,7 +445,7 @@ FileSystem::Remove(const char* name)
         entryLock->Acquire();
         Directory* toRemoveDir = new Directory();
         toRemoveDir->FetchFrom(entryFile);
-        if(!toRemoveDir->IsEmpty()){
+        if (!toRemoveDir->IsEmpty()) {
             entryLock->Release();
             dirLock->Release();
             delete toRemoveDir;
@@ -456,7 +458,8 @@ FileSystem::Remove(const char* name)
         entryLock->Release();
         delete toRemoveDir;
         delete entryFile;
-    } else {
+    }
+    else {
         bool shouldRemove = openFiles->SetRemove(entry.sector);
         if (shouldRemove) {
             remove(name, entry.sector, dir);
@@ -471,14 +474,23 @@ FileSystem::Remove(const char* name)
 void FileSystem::Close(unsigned fileid) {
     const char* name = openFiles->GetFileName(fileid);
     int sector = openFiles->GetFileSector(fileid);
+
+    // This is a special case because they are files that arent allowed to be deleted
+    if(sector == DIRECTORY_SECTOR || sector == FREE_MAP_SECTOR){
+        openFiles->CloseFile(fileid);
+        return;
+    }
+
     Path path;
-    path.Merge(name);
+    if (name != nullptr) {
+        path.Merge(name);
+    }
     path.Split(); // Get only the father directory
 
     dirTreeLock->RAcquire();
     DirectoryEntry dirEntry;
     bool b = FindPath(&path, &dirEntry);
-    if(!b){
+    if (!b) {
         dirTreeLock->RRelease();
         return;
     }
@@ -504,6 +516,8 @@ void FileSystem::Close(unsigned fileid) {
 }
 
 bool FileSystem::Extend(FileHeader* hdr, unsigned fileid, unsigned extendSize) {
+    DEBUG('d', "Value of openFiles %u\n", openFiles == nullptr);
+    DEBUG('f', "Extending fileid %u by %u\n", fileid, extendSize);
     unsigned sector = openFiles->GetFileSector(fileid);
     freeMapLock->Acquire();
     Bitmap* freeMap = new Bitmap(NUM_SECTORS);
@@ -519,18 +533,18 @@ bool FileSystem::Extend(FileHeader* hdr, unsigned fileid, unsigned extendSize) {
     return true;
 }
 
-bool FileSystem::mkdir(const char *name){
+bool FileSystem::mkdir(const char* name) {
     return Create(name, DIRECTORY_FILE_SIZE, true);
 }
 
-bool FileSystem::chdir(const char *newPath){
+bool FileSystem::chdir(const char* newPath) {
     Path path = currentThread->path;
     path.Merge(newPath);
 
     dirTreeLock->RAcquire();
     DirectoryEntry newDirEntry;
     bool b = FindPath(&path, &newDirEntry);
-    if(!b || (b && !newDirEntry.isDir)){
+    if (!b || (b && !newDirEntry.isDir)) {
         dirTreeLock->RRelease();
         return false;
     }
@@ -543,10 +557,10 @@ bool FileSystem::chdir(const char *newPath){
 
     // Get father directory of current file
     Path currentDirPath = currentThread->path;
-    currentDirPath.Split(); 
+    currentDirPath.Split();
 
     DirectoryEntry currentDirEntry;
-    if(!FindPath(&path, &currentDirEntry)){
+    if (!FindPath(&path, &currentDirEntry)) {
         dirTreeLock->RRelease();
         return false;
     }
@@ -562,7 +576,7 @@ bool FileSystem::chdir(const char *newPath){
     currentDirLock->Acquire();
     const char* currentDirName = openFiles->GetFileName(currentThread->currentDirFileId);
     int currentDirSector = openFiles->GetFileSector(currentThread->currentDirFileId);
-    if(openFiles->CloseFile(currentThread->currentDirFileId)){
+    if (openFiles->CloseFile(currentThread->currentDirFileId)) {
         Directory* dir = new Directory();
         dir->FetchFrom(currentDirFile);
         remove(currentDirName, currentDirSector, dir);
@@ -576,11 +590,11 @@ bool FileSystem::chdir(const char *newPath){
     return true;
 }
 
-void FileSystem::SetupThread(){
+void FileSystem::SetupThread() {
     Path path = currentThread->path;
     dirTreeLock->RAcquire();
     DirectoryEntry dirEntry;
-    if(!FindPath(&path, &dirEntry)){
+    if (!FindPath(&path, &dirEntry)) {
         dirTreeLock->RRelease();
         return;
     }
@@ -601,7 +615,8 @@ FileSystem::List()
 {
     currentThread->currentDirLock->RAcquire();
     int sector = openFiles->GetFileSector(currentThread->currentDirFileId);
-    OpenFile *dirFile = new OpenFile(sector, currentThread->currentDirFileId, currentThread->currentDirLock);
+    DEBUG('d', "Is the current sector the same as dir %d\n", sector == DIRECTORY_SECTOR);
+    OpenFile* dirFile = new OpenFile(sector, currentThread->currentDirFileId, currentThread->currentDirLock);
     Directory* dir = new Directory();
     dir->FetchFrom(dirFile);
     dir->List();
