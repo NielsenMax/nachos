@@ -112,6 +112,7 @@ bool FileTable::CloseFile(int fileid)
     }
     FileRef *fileRef = files->Get(fileid);
     fileRef->refCount--;
+    DEBUG('j', "the refcount of %u is %u\n", fileid,fileRef->refCount);
     if (fileRef->refCount == 0)
     {
         files->Remove(fileid);

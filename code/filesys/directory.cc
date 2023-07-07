@@ -186,10 +186,10 @@ Directory::Remove(const char* name)
 void
 Directory::List() const
 {
-    DEBUG('d', "THE SIZE OF THE TABLE IS %u\n", raw.tableSize);
+    DEBUG('j', "THE SIZE OF THE TABLE IS %u\n", raw.tableSize);
     for (unsigned i = 0; i < raw.tableSize; i++) {
         if (raw.table[i].inUse) {
-        DEBUG('d', "THE file %s is in use\n", raw.table[i].name);
+        DEBUG('j', "THE file %s is in use\n", raw.table[i].name);
             printf("%s\n", raw.table[i].name);
         }
     }

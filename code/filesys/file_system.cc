@@ -212,7 +212,7 @@ FileSystem::Create(const char* name, unsigned initialSize, bool isDirectory)
     RWLock* dirLock = nullptr;
     int dirId = openFiles->OpenFile(entry.sector, entry.name, &dirLock);
     dirTreeLock->RRelease(); // Its safe to release this lock 
-                             // because we open the dir so it cant be remove
+    // because we open the dir so it cant be remove
     DEBUG('f', "Adquiring dirlock\n");
     dirLock->Acquire();
     DEBUG('f', "Adquired dirlock\n");
@@ -239,6 +239,7 @@ FileSystem::Create(const char* name, unsigned initialSize, bool isDirectory)
         if (sector == -1) {
             DEBUG('f', "No space left\n");
             success = false; // No space
+            freeMapLock->Release();
         }
         else {
             DEBUG('f', "Calling add\n");
@@ -246,7 +247,7 @@ FileSystem::Create(const char* name, unsigned initialSize, bool isDirectory)
             DEBUG('f', "Is the extend needed?  %u\n", mustExtend);
             if (mustExtend) {
                 success = dirFile->hdr->Extend(freeMap, dirFile->Length() + sizeof(DirectoryEntry));
-            DEBUG('f', "The extend was successful %u\n", success);
+                DEBUG('f', "The extend was successful %u\n", success);
             }
             if (success) {
                 FileHeader* h = new FileHeader;
@@ -258,21 +259,37 @@ FileSystem::Create(const char* name, unsigned initialSize, bool isDirectory)
                     freeMap->WriteBack(freeMapFile);
                     DEBUG('f', "File written\n");
                     if (isDirectory) {
+                        freeMapLock->Release();
                         Directory* newDir = new Directory();
                         newDir->SetSize(DivRoundUp(initialSize, (unsigned)sizeof(DirectoryEntry)));
-                        OpenFile* newDirFile = new OpenFile(sector);
+                        DEBUG('f', "Setted size\n");
+                        RWLock* fileLock = nullptr;
+                        int fileId = openFiles->OpenFile(sector, file.c_str(), &fileLock);
+                        OpenFile* newDirFile = new OpenFile(sector, fileId, fileLock);
                         newDir->WriteBack(newDirFile);
+                        DEBUG('f', "Dir written\n");
+                        dirLock->Release();
                         delete newDirFile;
                         delete newDir;
+                        DEBUG('f', "LLEGUE\n");
                     }
+                    else {
+                        freeMapLock->Release();
+                        dirLock->Release();
+                    }
+                }else{
+                    freeMapLock->Release();
+                    dirLock->Release();
                 }
                 delete h;
             }
+            else {
+                freeMapLock->Release();
+                dirLock->Release();
+            }
         }
-        freeMapLock->Release();
         delete freeMap;
     }
-    dirLock->Release();
     DEBUG('f', "Succesfull create %u\n", success);
     delete dir;
     delete dirFile;
@@ -316,7 +333,9 @@ FileSystem::Open(const char* name)
     Path path = currentThread->path;
     path.Merge(name);
     const char* fileFullPath = path.GetPath().c_str();
+    DEBUG('j', "Full path %s\n", path.GetPath().c_str());
     std::string fileName = path.Split(); // Path now contains the father directory
+    DEBUG('j', "After split path %s\n", path.GetPath().c_str());
 
     // Find directory first
     dirTreeLock->RAcquire();
@@ -334,6 +353,8 @@ FileSystem::Open(const char* name)
         DEBUG('f', "Coudnt open dir file\n");
         return nullptr;
     }
+    DEBUG('j', "Father directory is %d\n", dirId);
+
     OpenFile* dirFile = new OpenFile(dirEntry.sector, dirId, dirLock);
     dirTreeLock->RRelease();
 
@@ -369,6 +390,7 @@ FileSystem::Open(const char* name)
     OpenFile* file = new OpenFile(sector, fileId, fileLock);
     dirLock->RRelease();
     delete dir;
+    DEBUG('f', "Closing father directory %d\n", dirId);
     delete dirFile;
     return file;
 }
@@ -489,7 +511,7 @@ void FileSystem::Close(unsigned fileid) {
     int sector = openFiles->GetFileSector(fileid);
 
     // This is a special case because they are files that arent allowed to be deleted
-    if(sector == DIRECTORY_SECTOR || sector == FREE_MAP_SECTOR){
+    if (sector == DIRECTORY_SECTOR || sector == FREE_MAP_SECTOR) {
         openFiles->CloseFile(fileid);
         return;
     }
@@ -562,6 +584,7 @@ bool FileSystem::chdir(const char* newPath) {
         return false;
     }
     RWLock* newDirLock = nullptr;
+    DEBUG('z', "the sector is %u\n", newDirEntry.sector);
     int newDirId = openFiles->OpenFile(newDirEntry.sector, newDirEntry.name, &newDirLock);
     if (newDirId == -1) {
         dirTreeLock->RRelease();
@@ -626,15 +649,25 @@ void FileSystem::SetupThread() {
 void
 FileSystem::List()
 {
+    DEBUG('j', "Adquiring lock\n");
     currentThread->currentDirLock->RAcquire();
+    DEBUG('j', "Adquired lock\n");
+    DEBUG('j', "The current file id %u\n", currentThread->currentDirFileId);
     int sector = openFiles->GetFileSector(currentThread->currentDirFileId);
-    DEBUG('d', "Is the current sector the same as dir %d\n", sector == DIRECTORY_SECTOR);
-    OpenFile* dirFile = new OpenFile(sector, currentThread->currentDirFileId, currentThread->currentDirLock);
+    if(sector == -1){
+        currentThread->currentDirLock->RRelease();
+        return;
+    }
+    const char* name = openFiles->GetFileName(currentThread->currentDirFileId);
+    DEBUG('j', "Is the current sector the same as dir %d is %d\n", sector == DIRECTORY_SECTOR, sector);
+    unsigned dirId = openFiles->OpenFile(sector, name); // This is to increment refcount
+    OpenFile* dirFile = new OpenFile(sector, dirId, currentThread->currentDirLock);
     Directory* dir = new Directory();
     dir->FetchFrom(dirFile);
     dir->List();
     currentThread->currentDirLock->RRelease();
     delete dir;
+    DEBUG('j', "Closing dir on list %u\n", dirId);
     delete dirFile;
 }
 
@@ -673,9 +706,11 @@ CheckSector(unsigned sector, Bitmap* shadowMap)
 }
 
 static bool
-CheckFileHeader(const RawFileHeader* rh, unsigned num, Bitmap* shadowMap)
+CheckFileHeader(FileHeader* h, unsigned num, Bitmap* shadowMap)
 {
-    ASSERT(rh != nullptr);
+    ASSERT(h != nullptr);
+
+    const RawFileHeader* rh = h->GetRaw();
 
     bool error = false;
 
@@ -684,10 +719,36 @@ CheckFileHeader(const RawFileHeader* rh, unsigned num, Bitmap* shadowMap)
     error |= CheckForError(rh->numSectors >= DivRoundUp(rh->numBytes,
         SECTOR_SIZE),
         "sector count not compatible with file size.");
-    error |= CheckForError(rh->numSectors < NUM_DIRECT,
+    error |= CheckForError(rh->numSectors < (NUM_DIRECT + NUM_INDIRECT + NUM_INDIRECT * NUM_INDIRECT),
         "too many blocks.");
+    if (rh->numSectors > NUM_DIRECT) {
+        error |= CheckSector(rh->singleIndirection, shadowMap);
+    }
+    if (rh->numSectors > NUM_DIRECT + NUM_INDIRECT) {
+        error |= CheckSector(rh->doubleIndirection, shadowMap);
+        unsigned doubleIndHeaders = DivRoundUp(rh->numSectors - (NUM_DIRECT + NUM_INDIRECT), NUM_INDIRECT);
+        const RawFileIndirection* rdi = h->GetRawDoubleIndirection();
+        for (unsigned i = 0; i < doubleIndHeaders; i++) {
+            unsigned s = rdi->dataSectors[i];
+            error |= CheckSector(s, shadowMap);
+        }
+    }
     for (unsigned i = 0; i < rh->numSectors; i++) {
-        unsigned s = rh->dataSectors[i];
+        unsigned s;
+        if (i < NUM_DIRECT) {
+            s = rh->dataSectors[i];
+        }
+        else if (i - NUM_DIRECT < NUM_INDIRECT) {
+            const RawFileIndirection* rsi = h->GetRawSingleIndirection();
+            s = rsi->dataSectors[i - NUM_DIRECT];
+        }
+        else {
+            unsigned index = i - NUM_DIRECT - NUM_INDIRECT;
+            unsigned doubleIndTable = DivRoundDown(index, NUM_INDIRECT);
+            const RawFileIndirection* rsi = h->GetRawSingleIndirectioOfDouble(doubleIndTable);
+            s = rsi->dataSectors[index % NUM_INDIRECT];
+        }
+
         error |= CheckSector(s, shadowMap);
     }
     return error;
@@ -750,9 +811,9 @@ CheckDirectory(const RawDirectory* rd, Bitmap* shadowMap)
 
             // Check file header.
             FileHeader* h = new FileHeader;
-            const RawFileHeader* rh = h->GetRaw();
+            // const RawFileHeader* rh = h->GetRaw();
             h->FetchFrom(e->sector);
-            error |= CheckFileHeader(rh, e->sector, shadowMap);
+            error |= CheckFileHeader(h, e->sector, shadowMap);
             delete h;
         }
     }
@@ -782,15 +843,15 @@ FileSystem::Check()
         "bad bitmap header: wrong file size.");
     error |= CheckForError(bitRH->numSectors == FREE_MAP_FILE_SIZE / SECTOR_SIZE,
         "bad bitmap header: wrong number of sectors.");
-    error |= CheckFileHeader(bitRH, FREE_MAP_SECTOR, shadowMap);
+    error |= CheckFileHeader(bitH, FREE_MAP_SECTOR, shadowMap);
     delete bitH;
 
     DEBUG('f', "Checking directory.\n");
 
     FileHeader* dirH = new FileHeader;
-    const RawFileHeader* dirRH = dirH->GetRaw();
+    // const RawFileHeader* dirRH = dirH->GetRaw();
     dirH->FetchFrom(DIRECTORY_SECTOR);
-    error |= CheckFileHeader(dirRH, DIRECTORY_SECTOR, shadowMap);
+    error |= CheckFileHeader(dirH, DIRECTORY_SECTOR, shadowMap);
     delete dirH;
 
     Bitmap* freeMap = new Bitmap(NUM_SECTORS);

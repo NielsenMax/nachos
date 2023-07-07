@@ -65,6 +65,9 @@ public:
     /// NOTE: this should only be used by routines that operate on the file
     /// system at a low level.
     const RawFileHeader *GetRaw() const;
+    const RawFileIndirection *GetRawSingleIndirection() const;
+    const RawFileIndirection *GetRawDoubleIndirection() const;
+    const RawFileIndirection *GetRawSingleIndirectioOfDouble(unsigned index) const;
 
 private:
     RawFileHeader raw;

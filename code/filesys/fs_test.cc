@@ -158,12 +158,11 @@ FileRead()
         fprintf(stderr, "Perf test: unable to open file %s\n", FILE_NAME);
         return;
     }
-
     char *buffer = new char [CONTENT_SIZE];
     for (unsigned i = 0; i < FILE_SIZE; i += CONTENT_SIZE) {
         int numBytes = openFile->Read(buffer, CONTENT_SIZE);
         if (numBytes < 10 || strncmp(buffer, CONTENTS, CONTENT_SIZE)) {
-            printf("Perf test: unable to read %s\n", FILE_NAME);
+            printf("Perf test: unable to read %s, numBytes %u, %s\n", FILE_NAME, numBytes, buffer);
             break;
         }
     }
@@ -177,11 +176,40 @@ PerformanceTest()
 {
     printf("Starting file system performance test:\n");
     stats->Print();
+    if (!fileSystem->mkdir("dir")) {
+    printf(" MKDIR 1 ERROR\n");
+    }
+    printf(" MKDIR 1 SUCCESS\n");
+    fileSystem->chdir("dir");
+    fileSystem->mkdir("dir2");
+    fileSystem->List();
+    fileSystem->chdir("dir2");
+    printf("Current dir id %d\n", currentThread->currentDirFileId);
+
     FileWrite();
+    printf("Current dir id %d\n", currentThread->currentDirFileId);
+
+    fileSystem->List();
     FileRead();
+    fileSystem->chdir("..");
+    fileSystem->chdir("..");
+    FileWrite();
+    fileSystem->List();
+    fileSystem->chdir("dir");
+    fileSystem->chdir("dir2");
     if (!fileSystem->Remove(FILE_NAME)) {
         printf("Perf test: unable to remove %s\n", FILE_NAME);
         return;
     }
+    fileSystem->chdir("..");
+    fileSystem->chdir("..");
+    if (!fileSystem->Remove(FILE_NAME)) {
+        printf("Perf test: unable to remove %s\n", FILE_NAME);
+        return;
+    }
+    fileSystem->chdir("dir");
+    fileSystem->Remove("dir2");
+    fileSystem->chdir("..");
+    fileSystem->Remove("dir");
     stats->Print();
 }
