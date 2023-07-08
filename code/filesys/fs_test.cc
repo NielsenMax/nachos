@@ -187,9 +187,10 @@ PerformanceTest()
     printf("Current dir id %d\n", currentThread->currentDirFileId);
 
     FileWrite();
-    printf("Current dir id %d\n", currentThread->currentDirFileId);
+    // Print(FILE_NAME);
+    // printf("Current dir id %d\n", currentThread->currentDirFileId);
 
-    fileSystem->List();
+    // fileSystem->List();
     FileRead();
     fileSystem->chdir("..");
     fileSystem->chdir("..");

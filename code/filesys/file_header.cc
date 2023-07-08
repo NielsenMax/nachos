@@ -148,7 +148,7 @@ FileHeader::FetchFrom(unsigned sector)
         if (raw.doubleIndirection != -1) {
             synchDisk->ReadSector(raw.doubleIndirection, (char*)&doubleIndirection);
             // Check this math, (sectors - direct sector - singleInd) / num of indirections = num of doubleInd used  
-            unsigned numDoubleIndirections = DivRoundUp(raw.numSectors - NUM_DIRECT - raw.singleIndirection, NUM_INDIRECT);
+            unsigned numDoubleIndirections = DivRoundUp(raw.numSectors - NUM_DIRECT - NUM_INDIRECT, NUM_INDIRECT);
             doubleIndirectionArray.clear();
             for (unsigned i = 0; i < numDoubleIndirections; i++) {
                 RawFileIndirection fileInd;
