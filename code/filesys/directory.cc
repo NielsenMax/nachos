@@ -62,6 +62,7 @@ Directory::FetchFrom(OpenFile* file)
 {
     ASSERT(file != nullptr);
     file->ReadAt((char*)&raw.tableSize, sizeof(unsigned), 0, false); // REad the first unsigned of the struct, aka the table size
+    DEBUG('q', "Number of entries fetching %u\n", raw.tableSize);
     if (raw.tableSize > 0) {
         raw.table = new DirectoryEntry[raw.tableSize];
         file->ReadAt((char*)raw.table,
@@ -96,6 +97,7 @@ Directory::FindIndex(const char* name)
     ASSERT(name != nullptr);
 
     for (unsigned i = 0; i < raw.tableSize; i++) {
+                DEBUG('q', "Comparing %i: use %u, name: %s with %s\n",i, raw.table[i].inUse, raw.table[i].name, name);
         if (raw.table[i].inUse
             && !strncmp(raw.table[i].name, name, FILE_NAME_MAX_LEN)) {
             return i;
@@ -176,6 +178,7 @@ Directory::Remove(const char* name)
 
     int i = FindIndex(name);
     if (i == -1) {
+        DEBUG('q', "Fail removing\n");
         return false;  // name not in directory
     }
     raw.table[i].inUse = false;
@@ -233,6 +236,7 @@ void Directory::SetSize(unsigned size){
 
 bool Directory::IsEmpty(){
     for (unsigned i = 0; i < raw.tableSize; i++) {
+        DEBUG('q', "Checking %u: %s use %u\n", i, raw.table[i].name, raw.table[i].inUse);
         if (raw.table[i].inUse) {
             return false;
         }

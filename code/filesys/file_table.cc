@@ -140,6 +140,7 @@ bool FileTable::SetRemove(unsigned sector)
     }
     FileRef *fileRef = files->Get(fileid);
     fileRef->toDelete = true;
+    lock->Release();
     // If it's on the table is because fileRef->refCount>0
     return false;
 }

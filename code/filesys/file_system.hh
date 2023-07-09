@@ -152,7 +152,7 @@ public:
     void SetupThread();
 
 private:
-    void remove(const char* name, int sector, Directory* dir);
+    void remove(const char* name, int sector, Directory* dir, OpenFile *dirFile);
 
     OpenFile *freeMapFile;  ///< Bit map of free disk blocks, represented as a
                             ///< file.
