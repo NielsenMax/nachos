@@ -11,12 +11,13 @@ public:
     unsigned sector;
     unsigned refCount;
     const char* name;
+    const char* fullName;
     bool toDelete;
 
     char* nameLock;
     RWLock* lock;
 
-    FileRef(unsigned sector, const char* name_);
+    FileRef(unsigned sector, const char* name_, const char* fullName_);
     ~FileRef();
 };
 
@@ -27,7 +28,7 @@ public:
 
     // Return the global fileid, the fileLock parameter is to get the rwlock
     // of the file
-    int OpenFile(unsigned sector, const char* name, RWLock** fileLock = nullptr);
+    int OpenFile(unsigned sector, const char* name, const char* fullName, RWLock** fileLock = nullptr);
 
     // Return true if the file should be removed
     bool CloseFile(int fileid);
@@ -36,6 +37,8 @@ public:
     bool SetRemove(unsigned sector);
 
     const char* GetFileName(int fileid);
+    const char *GetFileFullName(int fileid);
+
     int GetFileSector(int fileid);
 
 private:
