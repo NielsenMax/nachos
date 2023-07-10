@@ -29,6 +29,7 @@
 
 #include "mmu.hh"
 #include "endianness.hh"
+#include "threads/system.hh"
 
 #include <stdio.h>
 
@@ -125,6 +126,9 @@ MMU::ReadMem(unsigned addr, unsigned size, int* value)
     {
         return e;
     }
+    #ifdef SWAP_ENABLED
+        pageMap->Get(physicalAddress / PAGE_SIZE);
+    #endif
 
     int data;
     switch (size)
@@ -172,6 +176,10 @@ MMU::WriteMem(unsigned addr, unsigned size, int value)
     {
         return e;
     }
+
+    #ifdef SWAP_ENABLED
+        pageMap->Get(physicalAddress / PAGE_SIZE);
+    #endif
 
     switch (size)
     {

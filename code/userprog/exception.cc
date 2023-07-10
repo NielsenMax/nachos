@@ -501,6 +501,8 @@ PageFaultExceptionHanlder(ExceptionType et)
     #endif
     stats->numPageFaults++;
 
+    currentThread->space->SyncTlbEntry(tlbEntryIndex);
+
     TranslationEntry *tlbEntry = &machine->GetMMU()->tlb[tlbEntryIndex];
 
     tlbEntry->valid = spaceEntry->valid;

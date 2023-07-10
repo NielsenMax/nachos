@@ -275,7 +275,6 @@ TranslationEntry* AddressSpace::LoadPage(unsigned virtualAddr)
 
     return &pageTable[virtualPage];
 };
-
 #ifdef SWAP_ENABLED
 
 bool AddressSpace::UnswapPage(unsigned virtualPage) {
@@ -310,6 +309,14 @@ bool AddressSpace::SwapPage(unsigned virtualPage) {
         if (swapFile == nullptr) {
             return false;
         }
+    }
+
+    if (currentThread->space == this) {
+        TranslationEntry *tlb = machine->GetMMU()->tlb;
+        for(unsigned i=0; i<TLB_SIZE; ++i)
+            if(tlb[i].valid && tlb[i].virtualPage == virtualPage){
+                SyncTlbEntry(i);
+            }
     }
 
     char* mainMemory = machine->GetMMU()->mainMemory;
@@ -354,12 +361,28 @@ void AddressSpace::InitRegisters()
         numPages * PAGE_SIZE - 16);
 }
 
+void
+AddressSpace::SyncTlbEntry(unsigned entry)
+{
+    DEBUG('v', "Synching from TLB \n");
+    TranslationEntry* tlb = machine->GetMMU()->tlb;
+    if (tlb[entry].valid) {
+        pageTable[tlb[entry].virtualPage].dirty = tlb[entry].dirty;
+        pageTable[tlb[entry].virtualPage].use = tlb[entry].use;
+    }
+
+    tlb[entry].valid = false;
+}
+
 /// On a context switch, save any machine state, specific to this address
 /// space, that needs saving.
 ///
 /// For now, nothing!
 void AddressSpace::SaveState()
 {
+    for (unsigned i=0; i<TLB_SIZE; ++i){
+        SyncTlbEntry(i);
+    }
 }
 
 /// On a context switch, restore the machine state so that this address space

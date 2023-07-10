@@ -34,7 +34,7 @@ public:
     /// Parameters:
     /// * `executable_file` is the open file that corresponds to the
     ///   program; it contains the object code to load into memory.
-    AddressSpace(OpenFile *executable_file);
+    AddressSpace(OpenFile* executable_file);
 
     /// De-allocate an address space.
     ~AddressSpace();
@@ -47,31 +47,29 @@ public:
     void SaveState();
     void RestoreState();
 
-    TranslationEntry *LoadPage(unsigned virtualAddr);
+    TranslationEntry* LoadPage(unsigned virtualAddr);
 
-    unsigned TranslateVirtualAddrToPhysicalAddr(unsigned virtualAddr, unsigned *virtualPagePointer = nullptr);
-    TranslationEntry *pageTable;
+    unsigned TranslateVirtualAddrToPhysicalAddr(unsigned virtualAddr, unsigned* virtualPagePointer = nullptr);
+    TranslationEntry* pageTable;
     unsigned spaceId;
 
-    #ifdef SWAP_ENABLED
+#ifdef SWAP_ENABLED
     bool UnswapPage(unsigned virtualPage);
     bool SwapPage(unsigned virtualPage);
-    #endif
+#endif
 
-private:
-    /// Assume linear page table translation for now!
-
+    void SyncTlbEntry(unsigned entry);
 private:
     /// Assume linear page table translation for now!
 
     /// Number of pages in the virtual address space.
-    OpenFile *executable_file;
+    OpenFile* executable_file;
     unsigned numPages;
 
-    #ifdef SWAP_ENABLED
-    char *swapName;
-    OpenFile *swapFile;
-    #endif
+#ifdef SWAP_ENABLED
+    char* swapName;
+    OpenFile* swapFile;
+#endif
 };
 
 #endif
