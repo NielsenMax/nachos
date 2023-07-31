@@ -60,7 +60,7 @@ DefaultHandler(ExceptionType et)
     ASSERT(false);
 }
 
-void runProgram(void* argv_)
+void runProgram(void *argv_)
 {
     currentThread->space->InitRegisters(); // Set the initial register values.
     currentThread->space->RestoreState();  // Load page table register.
@@ -69,7 +69,7 @@ void runProgram(void* argv_)
 
     if (argv_ != nullptr)
     {
-        char** argv = (char**)argv_;
+        char **argv = (char **)argv_;
 
         unsigned argc = WriteArgs(argv);
 
@@ -105,6 +105,8 @@ SyscallHandler(ExceptionType _et)
 {
     int scid = machine->ReadRegister(2);
 
+    DEBUG('k', "Executing exception %d for %s\n", scid, currentThread->GetName());
+
     switch (scid)
     {
     case SC_EXEC:
@@ -120,7 +122,7 @@ SyscallHandler(ExceptionType _et)
             break;
         }
 
-        char* filename = new char[FILE_NAME_MAX_LEN + 1];
+        char *filename = new char[FILE_NAME_MAX_LEN + 1];
         if (!ReadStringFromUser(filenameAddr,
                                 filename, FILE_NAME_MAX_LEN))
         {
@@ -130,7 +132,7 @@ SyscallHandler(ExceptionType _et)
             break;
         }
         DEBUG('d', "[d] Filename to be exec %s\n", filename);
-        OpenFile* file = fileSystem->Open(filename);
+        OpenFile *file = fileSystem->Open(filename);
         if (file == nullptr)
         {
             DEBUG('e', "Error: file %s to be exec not found\n", filename);
@@ -146,7 +148,8 @@ SyscallHandler(ExceptionType _et)
 
         int spaceId = newThread->SetAddressSpace(newAddrSpace);
 
-        if (spaceId < 0) {
+        if (spaceId < 0)
+        {
             delete newThread;
             delete file;
             machine->WriteRegister(2, -1);
@@ -179,7 +182,7 @@ SyscallHandler(ExceptionType _et)
         if (threadsTable->HasKey(spaceId))
         {
             DEBUG('d', "The user program %d exists\n", spaceId);
-            Thread* programThread = threadsTable->Get(spaceId);
+            Thread *programThread = threadsTable->Get(spaceId);
             int returnCode = programThread->Join();
             machine->WriteRegister(2, returnCode);
             break;
@@ -208,7 +211,7 @@ SyscallHandler(ExceptionType _et)
             break;
         }
 
-        OpenFile* file = fileSystem->Open(filename);
+        OpenFile *file = fileSystem->Open(filename);
         if (file == nullptr)
         {
             DEBUG('a', "Error: file not found. \n");
@@ -234,7 +237,8 @@ SyscallHandler(ExceptionType _et)
     {
         int fileId = machine->ReadRegister(4);
 
-        if(fileId == CONSOLE_INPUT || fileId == CONSOLE_OUTPUT){
+        if (fileId == CONSOLE_INPUT || fileId == CONSOLE_OUTPUT)
+        {
             DEBUG('e', "Error: Trying to remove stdin or stdout\n");
             machine->WriteRegister(2, -1);
             break;
@@ -281,13 +285,14 @@ SyscallHandler(ExceptionType _et)
             machine->WriteRegister(2, -1);
             break;
         }
-        if (fileId == CONSOLE_OUTPUT) {
+        if (fileId == CONSOLE_OUTPUT)
+        {
             DEBUG('e', "Error: trying to read stdout");
             machine->WriteRegister(2, -1);
             break;
         }
 
-        char* string = new char[size + 1];
+        char *string = new char[size + 1];
         int read = 0;
         if (fileId != CONSOLE_INPUT)
         {
@@ -345,13 +350,14 @@ SyscallHandler(ExceptionType _et)
             machine->WriteRegister(2, -1);
             break;
         }
-        if (fileId == CONSOLE_INPUT) {
+        if (fileId == CONSOLE_INPUT)
+        {
             DEBUG('e', "Error: trying to write to stdin");
             machine->WriteRegister(2, -1);
             break;
         }
 
-        char* string = new char[size + 1];
+        char *string = new char[size + 1];
 
         ReadBufferFromUser(bufferAddr, string, size);
 
@@ -496,9 +502,9 @@ PageFaultExceptionHanlder(ExceptionType et)
     unsigned tlbEntryIndex = TLB_FIFO;
 
     TranslationEntry *spaceEntry = currentThread->space->LoadPage(virtualAddr);
-    #ifdef SWAP_ENABLED
+#ifdef SWAP_ENABLED
     pageMap->Get(spaceEntry->physicalPage);
-    #endif
+#endif
     stats->numPageFaults++;
 
     currentThread->space->SyncTlbEntry(tlbEntryIndex);

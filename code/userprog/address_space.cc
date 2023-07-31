@@ -19,7 +19,7 @@
 /// First, set up the translation from program memory to physical memory.
 /// For now, this is really simple (1:1), since we are only uniprogramming,
 /// and we have a single unsegmented page table.
-AddressSpace::AddressSpace(OpenFile* _executable_file)
+AddressSpace::AddressSpace(OpenFile *_executable_file)
 {
     executable_file = _executable_file;
     ASSERT(executable_file != nullptr);
@@ -40,11 +40,11 @@ AddressSpace::AddressSpace(OpenFile* _executable_file)
     // have virtual memory.
 
     DEBUG('a', "Initializing address space, num pages %u, size %u\n",
-        numPages, size);
+          numPages, size);
 
     // First, set up the translation.
 
-    char* mainMemory = machine->GetMMU()->mainMemory;
+    char *mainMemory = machine->GetMMU()->mainMemory;
 
     pageTable = new TranslationEntry[numPages];
     for (unsigned i = 0; i < numPages; i++)
@@ -71,7 +71,6 @@ AddressSpace::AddressSpace(OpenFile* _executable_file)
         // Zero out the entire address space, to zero the unitialized data
         // segment and the stack segment.
         memset(mainMemory + pageTable[i].physicalPage * PAGE_SIZE, 0, PAGE_SIZE);
-
     }
 
 #ifndef DEMAND_LOADING
@@ -97,19 +96,21 @@ AddressSpace::AddressSpace(OpenFile* _executable_file)
             uint32_t pageOffset = virtualAddr % PAGE_SIZE;
             uint32_t pageRemaining = PAGE_SIZE - pageOffset;
             DEBUG('d', "The page offset is %d\n", pageOffset);
-            if(pageRemaining < toRead){
+            if (pageRemaining < toRead)
+            {
                 toRead = pageRemaining;
             }
 
             DEBUG('d', "Initializing code segment, at virtual address 0x%X, physical address 0x%X size %u\n",
-                virtualAddr, physicalAddr, toRead);
+                  virtualAddr, physicalAddr, toRead);
 
             exe.ReadCodeBlock(&mainMemory[physicalAddr], toRead, codeOffset);
             codeOffset += toRead;
             leftOverSize -= toRead;
             virtualAddr += toRead;
 
-            if (leftOverSize > 0 && pageOffset == 0) {
+            if (leftOverSize > 0 && pageOffset == 0)
+            {
                 pageTable[virtualPage].readOnly = true;
             }
         };
@@ -134,12 +135,13 @@ AddressSpace::AddressSpace(OpenFile* _executable_file)
             uint32_t pageOffset = virtualAddr % PAGE_SIZE;
             uint32_t pageRemaining = PAGE_SIZE - pageOffset;
             DEBUG('d', "The page offset is %d\n", pageOffset);
-            if(pageRemaining < toRead){
+            if (pageRemaining < toRead)
+            {
                 toRead = pageRemaining;
             }
 
             DEBUG('d', "Initializing data segment, at virtual address 0x%X, physical address 0x%X size %u\n",
-                virtualAddr, physicalAddr, toRead);
+                  virtualAddr, physicalAddr, toRead);
 
             exe.ReadDataBlock(&mainMemory[physicalAddr], toRead, dataOffset);
             dataOffset += toRead;
@@ -151,7 +153,7 @@ AddressSpace::AddressSpace(OpenFile* _executable_file)
 }
 
 uint32_t
-AddressSpace::TranslateVirtualAddrToPhysicalAddr(uint32_t virtualAddr, uint32_t* virtualPagePointer)
+AddressSpace::TranslateVirtualAddrToPhysicalAddr(uint32_t virtualAddr, uint32_t *virtualPagePointer)
 {
     uint32_t virtualPage = DivRoundDown(virtualAddr, PAGE_SIZE);
     uint32_t pageOffset = virtualAddr % PAGE_SIZE;
@@ -178,7 +180,8 @@ AddressSpace::~AddressSpace()
     delete[] pageTable;
     delete executable_file;
 #ifdef SWAP_ENABLED
-    if (swapFile != nullptr) {
+    if (swapFile != nullptr)
+    {
         delete swapFile;
         fileSystem->Remove(swapName);
         delete[] swapName;
@@ -186,7 +189,7 @@ AddressSpace::~AddressSpace()
 #endif
 }
 
-TranslationEntry* AddressSpace::LoadPage(unsigned virtualAddr)
+TranslationEntry *AddressSpace::LoadPage(unsigned virtualAddr)
 {
     uint32_t virtualPage = DivRoundDown(virtualAddr, PAGE_SIZE);
 
@@ -207,7 +210,8 @@ TranslationEntry* AddressSpace::LoadPage(unsigned virtualAddr)
 
 #ifdef SWAP_ENABLED
     // The page was swapped
-    if (pageTable[virtualPage].virtualPage != virtualPage) {
+    if (pageTable[virtualPage].virtualPage != virtualPage)
+    {
         bool err = UnswapPage(virtualPage);
         DEBUG('d', "the unswap was succesful %d\n", err);
         return &pageTable[virtualPage];
@@ -215,73 +219,68 @@ TranslationEntry* AddressSpace::LoadPage(unsigned virtualAddr)
 #endif
 
     Executable exe(executable_file);
+    char *mainMemory = machine->GetMMU()->mainMemory;
+
+    DEBUG('k', "Exe file %p\n", executable_file);
+    DEBUG('k', "Current thread %s\n", currentThread->GetName());
+
     uint32_t codeSize = exe.GetCodeSize();
+    uint32_t initialCodeVirtualAddr = exe.GetCodeAddr();
+    uint32_t lastCodeVirtualAddr = initialCodeVirtualAddr + codeSize;
+
     uint32_t initDataSize = exe.GetInitDataSize();
-    char* mainMemory = machine->GetMMU()->mainMemory;
-
     uint32_t initialDataVirtualAddr = exe.GetInitDataAddr();
-    uint32_t codeVirtualAddr = exe.GetCodeAddr();
+    uint32_t lastInitDataVirtualAddr = initDataSize + initialDataVirtualAddr;
 
-    uint32_t lastCodePage = DivRoundDown(codeSize + codeVirtualAddr, PAGE_SIZE);
-    uint32_t lastCodePageSize = codeSize % PAGE_SIZE;
-    // uint32_t lastCodePageAddr = lastCodePage * PAGE_SIZE;
+    uint32_t firstPageToLoadVirtualAddr = virtualPage * PAGE_SIZE;
+    uint32_t lastPageToLoadVirtualAddr = firstPageToLoadVirtualAddr + PAGE_SIZE;
 
-    uint32_t lastInitDataPage = DivRoundDown(initDataSize + initialDataVirtualAddr, PAGE_SIZE);
-    uint32_t lastInitDataPageSize = initDataSize % PAGE_SIZE;
+    // Init everything in 0
+    uint32_t physicalAddr = TranslateVirtualAddrToPhysicalAddr(firstPageToLoadVirtualAddr, nullptr);
+    memset(&mainMemory[physicalAddr], 0, PAGE_SIZE);
 
-    // DEBUG('d', "lastCodePage %d\n", lastCodePage);
-    // DEBUG('d', "lastCodePageSize %d\n", lastCodePageSize);
-    // DEBUG('d', "lastCodePageAddr %d\n", lastCodePageAddr);
-    // DEBUG('d', "lastInitDataPage %d\n", lastInitDataPage);
-    // DEBUG('d', "lastInitDataPageSize %d\n", lastInitDataPageSize);
-    // DEBUG('d', "virtualPage %d\n", virtualPage);
-    // DEBUG('d', "initialDataVirtualAddr %d\n", initialDataVirtualAddr);
-    // DEBUG('d', "numPages %d\n", numPages);
-    // DEBUG('d', "codeSize %d\n", codeSize);
-    // DEBUG('d', "initDataSize %d\n", initDataSize);
+    DEBUG('k', "Page to load %d\n", virtualPage);
+    DEBUG('k', "Code size %d\n", codeSize);
+    DEBUG('k', "Data size %d\n", initDataSize);
+    DEBUG('k', "Init page virtual addr %d\n", firstPageToLoadVirtualAddr);
+    DEBUG('k', "Last page virtual addr %d\n", lastPageToLoadVirtualAddr);
+    DEBUG('k', "Init code virtual addr %d\n", initialCodeVirtualAddr);
+    DEBUG('k', "Last code virtual addr %d\n", lastCodeVirtualAddr);
+    DEBUG('k', "Init data virtual addr %d\n", initialDataVirtualAddr);
+    DEBUG('k', "Last data virtual addr %d\n", lastInitDataVirtualAddr);
 
-    uint32_t remaining = PAGE_SIZE;
-    uint32_t pageInit = virtualPage * PAGE_SIZE;
-
-    if (virtualPage <= lastCodePage)
+    uint32_t codeStart = std::max(firstPageToLoadVirtualAddr, initialCodeVirtualAddr);
+    uint32_t codeEnd = std::min(lastPageToLoadVirtualAddr, lastCodeVirtualAddr);
+    if (codeStart < codeEnd)
     {
-        uint32_t toRead = PAGE_SIZE;
-        if (virtualPage == lastCodePage)
-        {
-            toRead = lastCodePageSize;
-        }
-        uint32_t physicalAddr = TranslateVirtualAddrToPhysicalAddr(pageInit, nullptr);
-        DEBUG('d', "Writing %d to %d\n", toRead, pageInit);
-        exe.ReadCodeBlock(&mainMemory[physicalAddr], toRead, pageInit);
-        remaining -= toRead;
+        physicalAddr = TranslateVirtualAddrToPhysicalAddr(
+            codeStart,
+            nullptr);
+        DEBUG('k', "Writing Code to physical %d amount %d with offset %d \n", physicalAddr, codeEnd - codeStart, codeStart - initialCodeVirtualAddr);
+        exe.ReadCodeBlock(&mainMemory[physicalAddr], codeEnd - codeStart, codeStart - initialCodeVirtualAddr);
     }
-    if (remaining > 0 && initDataSize > 0 && virtualPage <= lastInitDataPage)
+
+    uint32_t dataStart = std::max(firstPageToLoadVirtualAddr, initialDataVirtualAddr);
+    uint32_t dataEnd = std::min(lastPageToLoadVirtualAddr, lastInitDataVirtualAddr);
+    if (dataStart < dataEnd)
     {
-        uint32_t toRead = remaining;
-        if (virtualPage == lastInitDataPage)
-        {
-            ASSERT(lastInitDataPageSize <= remaining);
-            toRead = lastInitDataPageSize;
-        }
-        uint32_t physicalAddr = TranslateVirtualAddrToPhysicalAddr(pageInit + PAGE_SIZE - remaining, nullptr);
-        exe.ReadDataBlock(&mainMemory[physicalAddr], toRead, (virtualPage - lastCodePage) * PAGE_SIZE);
-        remaining -= toRead;
-    }
-    if (remaining > 0)
-    {
-        uint32_t physicalAddr = TranslateVirtualAddrToPhysicalAddr(pageInit - remaining + PAGE_SIZE, nullptr);
-        memset(&mainMemory[physicalAddr], 0, remaining);
+        physicalAddr = TranslateVirtualAddrToPhysicalAddr(
+            dataStart,
+            nullptr);
+        DEBUG('k', "Writing Data to physical %d amount %d with offset %d \n", physicalAddr, dataEnd - dataStart, dataStart - initialDataVirtualAddr);
+        exe.ReadDataBlock(&mainMemory[physicalAddr], dataEnd - dataStart, dataStart - initialDataVirtualAddr);
     }
 
     return &pageTable[virtualPage];
 };
 #ifdef SWAP_ENABLED
 
-bool AddressSpace::UnswapPage(unsigned virtualPage) {
+bool AddressSpace::UnswapPage(unsigned virtualPage)
+{
     DEBUG('e', "going to unswap page %d\n", virtualPage);
 
     ASSERT(swapFile != nullptr);
-    char* mainMemory = machine->GetMMU()->mainMemory;
+    char *mainMemory = machine->GetMMU()->mainMemory;
     uint32_t virtualAddr = virtualPage * PAGE_SIZE;
     uint32_t physicalAddr = TranslateVirtualAddrToPhysicalAddr(virtualAddr, nullptr);
 
@@ -292,34 +291,40 @@ bool AddressSpace::UnswapPage(unsigned virtualPage) {
     return true;
 }
 
-/// Swap a page. If is call for the first time the swap file is created.  
+/// Swap a page. If is call for the first time the swap file is created.
 /// Return false if the creation of the file fails.
-bool AddressSpace::SwapPage(unsigned virtualPage) {
+bool AddressSpace::SwapPage(unsigned virtualPage)
+{
     DEBUG('e', "going to swap page %d\n", virtualPage);
     // The wasn't created
-    if (swapFile == nullptr) {
+    if (swapFile == nullptr)
+    {
         swapName = new char[10];
         sprintf(swapName, "SWAP.%u", spaceId); // spaceId should be set by this point
         // ? Maybe be a good idea to check if the file already exist
         // ? I supose be should also delete it from the fs when we are destroy
-        if (!fileSystem->Create(swapName, numPages * PAGE_SIZE)) {
+        if (!fileSystem->Create(swapName, numPages * PAGE_SIZE))
+        {
             return false;
         }
         swapFile = fileSystem->Open(swapName);
-        if (swapFile == nullptr) {
+        if (swapFile == nullptr)
+        {
             return false;
         }
     }
 
-    if (currentThread->space == this) {
+    if (currentThread->space == this)
+    {
         TranslationEntry *tlb = machine->GetMMU()->tlb;
-        for(unsigned i=0; i<TLB_SIZE; ++i)
-            if(tlb[i].valid && tlb[i].virtualPage == virtualPage){
+        for (unsigned i = 0; i < TLB_SIZE; ++i)
+            if (tlb[i].valid && tlb[i].virtualPage == virtualPage)
+            {
                 SyncTlbEntry(i);
             }
     }
 
-    char* mainMemory = machine->GetMMU()->mainMemory;
+    char *mainMemory = machine->GetMMU()->mainMemory;
     uint32_t virtualAddr = virtualPage * PAGE_SIZE;
     uint32_t physicalAddr = TranslateVirtualAddrToPhysicalAddr(virtualAddr, nullptr);
 
@@ -328,8 +333,8 @@ bool AddressSpace::SwapPage(unsigned virtualPage) {
     pageTable[virtualPage].valid = false;
     pageTable[virtualPage].virtualPage = numPages;
     DEBUG('d', "invalidating page %d of the TLB\n", pageTable[virtualPage].physicalPage);
-    
-    machine->GetMMU()->InvalidateTLBPage(pageTable[virtualPage].physicalPage); 
+
+    machine->GetMMU()->InvalidateTLBPage(pageTable[virtualPage].physicalPage);
     return true;
 }
 #endif
@@ -358,15 +363,15 @@ void AddressSpace::InitRegisters()
     // accidentally reference off the end!
     machine->WriteRegister(STACK_REG, numPages * PAGE_SIZE - 16);
     DEBUG('a', "Initializing stack register to %u\n",
-        numPages * PAGE_SIZE - 16);
+          numPages * PAGE_SIZE - 16);
 }
 
-void
-AddressSpace::SyncTlbEntry(unsigned entry)
+void AddressSpace::SyncTlbEntry(unsigned entry)
 {
     DEBUG('v', "Synching from TLB \n");
-    TranslationEntry* tlb = machine->GetMMU()->tlb;
-    if (tlb[entry].valid) {
+    TranslationEntry *tlb = machine->GetMMU()->tlb;
+    if (tlb[entry].valid)
+    {
         pageTable[tlb[entry].virtualPage].dirty = tlb[entry].dirty;
         pageTable[tlb[entry].virtualPage].use = tlb[entry].use;
     }
@@ -380,9 +385,12 @@ AddressSpace::SyncTlbEntry(unsigned entry)
 /// For now, nothing!
 void AddressSpace::SaveState()
 {
-    for (unsigned i=0; i<TLB_SIZE; ++i){
+#ifdef USE_TLB
+    for (unsigned i = 0; i < TLB_SIZE; ++i)
+    {
         SyncTlbEntry(i);
     }
+#endif
 }
 
 /// On a context switch, restore the machine state so that this address space

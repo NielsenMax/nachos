@@ -10,9 +10,10 @@
 
 #include "syscall.h"
 
-int
-main(void)
+int main(void)
 {
+    Write("Open file\n", 10, CONSOLE_OUTPUT);
+
     Exec("../userland/halt", 0, 0);
 
     // Hopefully reached.
