@@ -93,7 +93,7 @@ class OpenFile {
 public:
 
     /// Open a file whose header is located at `sector` on the disk.
-    OpenFile(int sector, unsigned fileid, RWLock *lock);
+    OpenFile(int sector, int fileid = -1, RWLock *lock = nullptr);
 
     /// Close the file.
     ~OpenFile();
@@ -104,22 +104,22 @@ public:
     /// Read/write bytes from the file, starting at the implicit position.
     /// Return the # actually read/written, and increment position in file.
 
-    int Read(char *into, unsigned numBytes);
-    int Write(const char *from, unsigned numBytes);
+    int Read(char *into, unsigned numBytes, bool shouldLock = true);
+    int Write(const char *from, unsigned numBytes, bool shouldLock = true);
 
     /// Read/write bytes from the file, bypassing the implicit position.
 
     int ReadAt(char *into, unsigned numBytes, unsigned position, bool shouldLock = true);
-    int WriteAt(const char *from, unsigned numBytes, unsigned position);
+    int WriteAt(const char *from, unsigned numBytes, unsigned position, bool shouldLock = true);
 
     // Return the number of bytes in the file (this interface is simpler than
     // the UNIX idiom -- `lseek` to end of file, `tell`, `lseek` back).
     unsigned Length() const;
 
-  private:
     FileHeader *hdr;  ///< Header for this file.
+  private:
     unsigned seekPosition;  ///< Current position within the file.
-    unsigned fileid; // Global fileid
+    int fileid; // Global fileid
     RWLock* lock;
 };
 

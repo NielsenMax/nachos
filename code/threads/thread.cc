@@ -21,6 +21,11 @@
 #include "system.hh"
 #include "channel.hh"
 
+#ifdef FILESYS
+#include "filesys/path.hh"
+#include "filesys/rwlock.hh"
+#endif
+
 #include <inttypes.h>
 #include <stdio.h>
 

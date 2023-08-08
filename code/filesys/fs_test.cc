@@ -28,17 +28,42 @@
 
 
 static const unsigned TRANSFER_SIZE = 10;  // Make it small, just to be
-                                           // difficult.
+// difficult.
+
+
+/// Print the contents of the Nachos file `name`.
+void
+Print(const char* name)
+{
+    ASSERT(name != nullptr);
+
+    OpenFile* openFile = fileSystem->Open(name);
+    if (openFile == nullptr) {
+        fprintf(stderr, "Print: unable to open file %s\n", name);
+        return;
+    }
+
+    char* buffer = new char[TRANSFER_SIZE];
+    int amountRead;
+    while ((amountRead = openFile->Read(buffer, TRANSFER_SIZE)) > 0) {
+        for (unsigned i = 0; i < (unsigned)amountRead; i++) {
+            printf("%c", buffer[i]);
+        }
+    }
+
+    delete[] buffer;
+    delete openFile;  // close the Nachos file
+}
 
 /// Copy the contents of the UNIX file `from` to the Nachos file `to`.
 void
-Copy(const char *from, const char *to)
+Copy(const char* from, const char* to)
 {
     ASSERT(from != nullptr);
     ASSERT(to != nullptr);
 
     // Open UNIX file.
-    FILE *fp = fopen(from, "r");
+    FILE* fp = fopen(from, "r");
     if (fp == nullptr) {
         printf("Copy: could not open input file %s\n", from);
         return;
@@ -49,9 +74,6 @@ Copy(const char *from, const char *to)
     int fileLength = ftell(fp);
     fseek(fp, 0, 0);
 
-    DEBUG('f', "Copying file %s, size %u, to file %s\n",
-          from, fileLength, to);
-
     // Create a Nachos file of the same length.
     if (!fileSystem->Create(to, fileLength)) {  // Create Nachos file.
         printf("Copy: could not create output file %s\n", to);
@@ -59,46 +81,27 @@ Copy(const char *from, const char *to)
         return;
     }
 
-    OpenFile *openFile = fileSystem->Open(to);
+    DEBUG('f', "Copying file %s, size %u, to file %s\n",
+        from, fileLength, to);
+
+    OpenFile* openFile = fileSystem->Open(to);
+    printf("the open fileid is %p\n", openFile);
     ASSERT(openFile != nullptr);
 
     // Copy the data in `TRANSFER_SIZE` chunks.
-    char *buffer = new char [TRANSFER_SIZE];
+    char* buffer = new char[TRANSFER_SIZE];
     int amountRead;
     while ((amountRead = fread(buffer, sizeof(char),
-                               TRANSFER_SIZE, fp)) > 0)
+        TRANSFER_SIZE, fp)) > 0)
         openFile->Write(buffer, amountRead);
-    delete [] buffer;
+    delete[] buffer;
 
+    printf("The amount readed is %d", amountRead);
     // Close the UNIX and the Nachos files.
     delete openFile;
     fclose(fp);
+    Print(to);
 }
-
-/// Print the contents of the Nachos file `name`.
-void
-Print(const char *name)
-{
-    ASSERT(name != nullptr);
-
-    OpenFile *openFile = fileSystem->Open(name);
-    if (openFile == nullptr) {
-        fprintf(stderr, "Print: unable to open file %s\n", name);
-        return;
-    }
-
-    char *buffer = new char [TRANSFER_SIZE];
-    int amountRead;
-    while ((amountRead = openFile->Read(buffer, TRANSFER_SIZE)) > 0) {
-        for (unsigned i = 0; i < (unsigned) amountRead; i++) {
-            printf("%c", buffer[i]);
-        }
-    }
-
-    delete [] buffer;
-    delete openFile;  // close the Nachos file
-}
-
 
 /// Performance test
 ///
@@ -120,14 +123,14 @@ static void
 FileWrite()
 {
     printf("Sequential write of %u byte file, in %u byte chunks\n",
-           FILE_SIZE, CONTENT_SIZE);
+        FILE_SIZE, CONTENT_SIZE);
 
     if (!fileSystem->Create(FILE_NAME, 0)) {
         fprintf(stderr, "Perf test: cannot create %s\n", FILE_NAME);
         return;
     }
 
-    OpenFile *openFile = fileSystem->Open(FILE_NAME);
+    OpenFile* openFile = fileSystem->Open(FILE_NAME);
     if (openFile == nullptr) {
         fprintf(stderr, "Perf test: unable to open %s\n", FILE_NAME);
         return;
@@ -148,24 +151,23 @@ static void
 FileRead()
 {
     printf("Sequential read of %u byte file, in %u byte chunks\n",
-           FILE_SIZE, CONTENT_SIZE);
+        FILE_SIZE, CONTENT_SIZE);
 
-    OpenFile *openFile = fileSystem->Open(FILE_NAME);
+    OpenFile* openFile = fileSystem->Open(FILE_NAME);
     if (openFile == nullptr) {
         fprintf(stderr, "Perf test: unable to open file %s\n", FILE_NAME);
         return;
     }
-
-    char *buffer = new char [CONTENT_SIZE];
+    char* buffer = new char[CONTENT_SIZE];
     for (unsigned i = 0; i < FILE_SIZE; i += CONTENT_SIZE) {
         int numBytes = openFile->Read(buffer, CONTENT_SIZE);
         if (numBytes < 10 || strncmp(buffer, CONTENTS, CONTENT_SIZE)) {
-            printf("Perf test: unable to read %s\n", FILE_NAME);
+            printf("Perf test: unable to read %s, numBytes %u, %s\n", FILE_NAME, numBytes, buffer);
             break;
         }
     }
 
-    delete [] buffer;
+    delete[] buffer;
     delete openFile;
 }
 
@@ -174,11 +176,77 @@ PerformanceTest()
 {
     printf("Starting file system performance test:\n");
     stats->Print();
+    if (!fileSystem->mkdir("dir")) {
+        printf(" MKDIR 1 ERROR\n");
+    }
+    printf(" MKDIR 1 SUCCESS\n");
+    fileSystem->chdir("dir");
+    fileSystem->mkdir("dir2");
+    fileSystem->List();
+    fileSystem->chdir("dir2");
+    printf("Current dir id %d\n", currentThread->currentDirFileId);
+
     FileWrite();
+    // Print(FILE_NAME);
+    // printf("Current dir id %d\n", currentThread->currentDirFileId);
+
+    // fileSystem->List();
     FileRead();
+    if (!fileSystem->chdir("..")) {
+        printf("Failed switching to father 1\n");
+    }
+    if (!fileSystem->chdir("..")) {
+        printf("Failed switching to father 2\n");
+    }
+    FileWrite();
+    fileSystem->List();
+    fileSystem->chdir("dir");
+    fileSystem->chdir("dir2");
+    fileSystem->List();
     if (!fileSystem->Remove(FILE_NAME)) {
         printf("Perf test: unable to remove %s\n", FILE_NAME);
         return;
+    }
+    else {
+        printf("Perf test: succeed removing %s\n", FILE_NAME);
+    }
+    if (!fileSystem->chdir("..")) {
+        printf("Failed switching to father 3\n");
+        return;
+    }
+    if (!fileSystem->chdir("..")) {
+        printf("Failed switching to father 4\n");
+        return;
+    }
+    fileSystem->List();
+    if (!fileSystem->Remove(FILE_NAME)) {
+        printf("Perf test: unable to remove %s\n", FILE_NAME);
+        return;
+    }
+    else {
+        printf("Perf test: succeed removing %s\n", FILE_NAME);
+    }
+    if (!fileSystem->chdir("dir")) {
+        printf("Failed switching to dir\n");
+        return;
+    }
+    if (!fileSystem->Remove("dir2")) {
+        printf("Perf test: unable to remove dir2\n");
+        return;
+    }
+    else {
+        printf("Perf test: succeed removing dir2\n");
+    }
+    if (!fileSystem->chdir("..")) {
+        printf("Failed switching to father 5\n");
+        return;
+    }
+    if (!fileSystem->Remove("dir")) {
+        printf("Perf test: unable to remove dir\n");
+        return;
+    }
+    else {
+        printf("Perf test: succeed removing dir\n");
     }
     stats->Print();
 }

@@ -97,6 +97,7 @@ public:
 #include "machine/disk.hh"
 #include "threads/lock.hh"
 #include "file_table.hh"
+#include "path.hh"
 
 /// Initial file sizes for the bitmap and directory; until the file system
 /// supports extensible files, the directory size sets the maximum number of
@@ -104,7 +105,7 @@ public:
 static const unsigned FREE_MAP_FILE_SIZE = NUM_SECTORS / BITS_IN_BYTE;
 static const unsigned NUM_DIR_ENTRIES = 10;
 static const unsigned DIRECTORY_FILE_SIZE
-  = sizeof (DirectoryEntry) * NUM_DIR_ENTRIES;
+  = sizeof (DirectoryEntry) * NUM_DIR_ENTRIES + sizeof (unsigned);
 
 
 class FileSystem {
@@ -120,7 +121,7 @@ public:
     ~FileSystem();
 
     /// Create a file (UNIX `creat`).
-    bool Create(const char *name, unsigned initialSize);
+    bool Create(const char *name, unsigned initialSize, bool isDirectory = false);
 
     /// Open a file (UNIX `open`).
     OpenFile *Open(const char *name);
@@ -142,18 +143,27 @@ public:
     /// List all the files and their contents.
     void Print();
 
+    bool FindPath(Path *path, DirectoryEntry *entry);
+
+    bool mkdir(const char *name);
+
+    bool chdir(const char *newPath);
+
+    void SetupThread();
+
 private:
-    void remove(const char* name, int sector, Directory* dir);
+    void remove(const char* name, int sector, Directory* dir, OpenFile *dirFile);
 
     OpenFile *freeMapFile;  ///< Bit map of free disk blocks, represented as a
                             ///< file.
-    char *nameFreeMapLock;
-    Lock *freeMapLock;
+    RWLock *freeMapLock;
+
+    char *nameDirTreeLock;
+    RWLock *dirTreeLock;
 
     OpenFile *directoryFile;  ///< “Root” directory -- list of file names,
                               ///< represented as a file.
-    char *nameDirectoryFile;
-    Lock *directoryFileLock;
+    RWLock *directoryFileLock;
 
     FileTable* openFiles;
 };

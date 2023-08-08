@@ -2,10 +2,11 @@
 
 #include <stdio.h>
 
-FileRef::FileRef(unsigned sector_, const char *name_)
+FileRef::FileRef(unsigned sector_, const char *name_, const char* fullName_)
 {
     sector = sector_;
     name = name_;
+    fullName = fullName_;
     nameLock = new char[12];
     sprintf(nameLock, "RWLock::%d", sector);
     lock = new RWLock(nameLock);
@@ -61,7 +62,7 @@ int FileTable::findFileRef(unsigned sector)
     return fileid;
 }
 
-int FileTable::OpenFile(unsigned sector, const char *name, RWLock **fileLock)
+int FileTable::OpenFile(unsigned sector, const char *name, const char *fullName, RWLock **fileLock)
 {
     lock->Acquire();
 
@@ -69,7 +70,7 @@ int FileTable::OpenFile(unsigned sector, const char *name, RWLock **fileLock)
     FileRef *fileRef = nullptr;
     if (fileid == -1)
     {
-        fileRef = new FileRef(sector, name);
+        fileRef = new FileRef(sector, name, fullName);
         fileid = files->Add(fileRef);
         if (fileid == -1)
         {
@@ -112,6 +113,7 @@ bool FileTable::CloseFile(int fileid)
     }
     FileRef *fileRef = files->Get(fileid);
     fileRef->refCount--;
+    DEBUG('j', "the refcount of %u is %u\n", fileid,fileRef->refCount);
     if (fileRef->refCount == 0)
     {
         files->Remove(fileid);
@@ -139,6 +141,7 @@ bool FileTable::SetRemove(unsigned sector)
     }
     FileRef *fileRef = files->Get(fileid);
     fileRef->toDelete = true;
+    lock->Release();
     // If it's on the table is because fileRef->refCount>0
     return false;
 }
@@ -151,6 +154,19 @@ const char *FileTable::GetFileName(int fileid)
         FileRef *fileRef = files->Get(fileid);
         lock->Release();
         return fileRef->name;
+    }
+    lock->Release();
+    return nullptr;
+}
+
+const char *FileTable::GetFileFullName(int fileid)
+{
+    lock->Acquire();
+    if (files->HasKey(fileid))
+    {
+        FileRef *fileRef = files->Get(fileid);
+        lock->Release();
+        return fileRef->fullName;
     }
     lock->Release();
     return nullptr;

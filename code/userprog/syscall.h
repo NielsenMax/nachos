@@ -31,7 +31,10 @@
 #define SC_CLOSE   13
 #define SC_READ    14
 #define SC_WRITE   15
-#define SC_PS   16
+#define SC_PS      16
+#define SC_MKDIR   17
+#define SC_CHDIR   18
+#define SC_PWD     19
 
 
 #ifndef IN_ASM
@@ -125,6 +128,12 @@ int Close(OpenFileId id);
 
 /// Print the scheduler.
 void Ps();
+
+int Chdir(const char* name);
+
+int Mkdir(const char* name);
+
+char* Pwd(const char* buf, int size);
 
 
 #endif

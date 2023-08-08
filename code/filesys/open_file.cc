@@ -22,7 +22,7 @@
 /// memory while the file is open.
 ///
 /// * `sector` is the location on disk of the file header for this file.
-OpenFile::OpenFile(int sector, unsigned fileid_, RWLock* lock_)
+OpenFile::OpenFile(int sector, int fileid_, RWLock* lock_)
 {
     fileid = fileid_;
     lock = lock_;
@@ -35,7 +35,9 @@ OpenFile::OpenFile(int sector, unsigned fileid_, RWLock* lock_)
 OpenFile::~OpenFile()
 {
     delete hdr;
-    fileSystem->Close(fileid);
+    if (fileid != -1) {
+        fileSystem->Close(fileid);
+    }
 }
 
 /// Change the current location within the open file -- the point at which
@@ -61,23 +63,23 @@ OpenFile::Seek(unsigned position)
 /// * `numBytes` is the number of bytes to transfer.
 
 int
-OpenFile::Read(char* into, unsigned numBytes)
+OpenFile::Read(char* into, unsigned numBytes, bool shouldLock)
 {
     ASSERT(into != nullptr);
     ASSERT(numBytes > 0);
 
-    int result = ReadAt(into, numBytes, seekPosition);
+    int result = ReadAt(into, numBytes, seekPosition,shouldLock);
     seekPosition += result;
     return result;
 }
 
 int
-OpenFile::Write(const char* into, unsigned numBytes)
+OpenFile::Write(const char* into, unsigned numBytes, bool shouldLock)
 {
     ASSERT(into != nullptr);
     ASSERT(numBytes > 0);
 
-    int result = WriteAt(into, numBytes, seekPosition);
+    int result = WriteAt(into, numBytes, seekPosition, shouldLock);
     seekPosition += result;
     return result;
 }
@@ -112,8 +114,9 @@ OpenFile::ReadAt(char* into, unsigned numBytes, unsigned position, bool shouldLo
 {
     ASSERT(into != nullptr);
     ASSERT(numBytes > 0);
+    shouldLock &= lock != nullptr;
     if (shouldLock) {
-        lock->RAdquire();
+        lock->RAcquire();
     }
 
     unsigned fileLength = hdr->FileLength();
@@ -153,27 +156,34 @@ OpenFile::ReadAt(char* into, unsigned numBytes, unsigned position, bool shouldLo
 }
 
 int
-OpenFile::WriteAt(const char* from, unsigned numBytes, unsigned position)
+OpenFile::WriteAt(const char* from, unsigned numBytes, unsigned position, bool shouldLock)
 {
     ASSERT(from != nullptr);
     ASSERT(numBytes > 0);
-
-    lock->Adquire();
+    shouldLock &= lock != nullptr;
+    if (shouldLock) {
+        lock->Acquire();
+    }
     unsigned fileLength = hdr->FileLength();
     unsigned firstSector, lastSector, numSectors;
     bool firstAligned, lastAligned;
     char* buf;
 
-    if (position >= fileLength) {
-        lock->Release();
+    if (position > fileLength) {
+        if (shouldLock) {
+            lock->Release();
+        }
         return 0;  // Check request.
     }
     if (position + numBytes > fileLength) {
         // numBytes = fileLength - position;
-        if(fileSystem->Extend(hdr, fileid, position + numBytes)){
+        if (fileSystem->Extend(hdr, fileid, position + numBytes)) {
             fileLength = hdr->FileLength();
-        } else {
-            lock->Release();
+        }
+        else {
+            if (shouldLock) {
+                lock->Release();
+            }
             return 0;
         }
     }
@@ -206,7 +216,9 @@ OpenFile::WriteAt(const char* from, unsigned numBytes, unsigned position)
         synchDisk->WriteSector(hdr->ByteToSector(i * SECTOR_SIZE),
             &buf[(i - firstSector) * SECTOR_SIZE]);
     }
-    lock->Release();
+    if (shouldLock) {
+        lock->Release();
+    }
     delete[] buf;
     return numBytes;
 }
@@ -215,9 +227,6 @@ OpenFile::WriteAt(const char* from, unsigned numBytes, unsigned position)
 unsigned
 OpenFile::Length() const
 {
-    // ? Is the lock necessary
-    lock->RAdquire();
-    unsigned bytes =  hdr->FileLength();
-    lock->RRelease();
+    unsigned bytes = hdr->FileLength();
     return bytes;
 }

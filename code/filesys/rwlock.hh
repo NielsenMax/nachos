@@ -9,9 +9,9 @@ public:
     RWLock(char *name);
     ~RWLock();
 
-    void RAdquire();
+    void RAcquire();
     void RRelease();
-    void Adquire();
+    void Acquire();
     void Release();
 private:
     char *name;

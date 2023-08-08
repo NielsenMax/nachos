@@ -48,9 +48,22 @@ FileHeader::Allocate(Bitmap* freeMap, unsigned fileSize)
 
     raw.numBytes = fileSize;
     raw.numSectors = DivRoundUp(fileSize, SECTOR_SIZE);
+    unsigned headersNeeded = 0;
     unsigned remaining = raw.numSectors;
+    if (remaining > NUM_DIRECT) {
+        headersNeeded++;
+    }
+    if (remaining > NUM_DIRECT + NUM_INDIRECT) {
+        unsigned doubleIndHeaders = DivRoundUp(remaining - (NUM_DIRECT + NUM_INDIRECT), NUM_INDIRECT);
+        if (raw.doubleIndirection == -1) {
+            headersNeeded += doubleIndHeaders + 1;
+        }
+        else {
+            headersNeeded += doubleIndHeaders - doubleIndirectionArray.size();
+        }
+    }
 
-    if (freeMap->CountClear() < raw.numSectors) {
+    if (freeMap->CountClear() < raw.numSectors + headersNeeded) {
         return false;  // Not enough space.
     }
 
@@ -135,7 +148,7 @@ FileHeader::FetchFrom(unsigned sector)
         if (raw.doubleIndirection != -1) {
             synchDisk->ReadSector(raw.doubleIndirection, (char*)&doubleIndirection);
             // Check this math, (sectors - direct sector - singleInd) / num of indirections = num of doubleInd used  
-            unsigned numDoubleIndirections = DivRoundUp(raw.numSectors - NUM_DIRECT - raw.singleIndirection, NUM_INDIRECT);
+            unsigned numDoubleIndirections = DivRoundUp(raw.numSectors - NUM_DIRECT - NUM_INDIRECT, NUM_INDIRECT);
             doubleIndirectionArray.clear();
             for (unsigned i = 0; i < numDoubleIndirections; i++) {
                 RawFileIndirection fileInd;
@@ -247,17 +260,17 @@ bool FileHeader::Extend(Bitmap* freeMap, unsigned extendSize) {
         unsigned index = doubleIndirectionArray.size();
         // If there space left on the current double indirection
         unsigned sectorsOnDoubleInd = raw.numSectors - NUM_DIRECT - NUM_INDIRECT;
-        if (sectorsOnDoubleInd < (index) * NUM_INDIRECT) {
+        if (sectorsOnDoubleInd < (index)*NUM_INDIRECT) {
             for (unsigned i = sectorsOnDoubleInd % NUM_INDIRECT; i < NUM_INDIRECT && sectorsNeeded > 0; i++) {
-                doubleIndirectionArray[index-1].dataSectors[i] = freeMap->Find();
+                doubleIndirectionArray[index - 1].dataSectors[i] = freeMap->Find();
                 sectorsNeeded--;
             }
         }
-        while(sectorsNeeded >0){
+        while (sectorsNeeded > 0) {
             RawFileIndirection fileInd;
             doubleIndirection.dataSectors[index] = freeMap->Find();
             unsigned numDoubleInd = std::min(sectorsNeeded, NUM_INDIRECT);
-            for(unsigned i = 0; i<numDoubleInd; i++){
+            for (unsigned i = 0; i < numDoubleInd; i++) {
                 fileInd.dataSectors[i] = freeMap->Find();
             }
             doubleIndirectionArray.push_back(fileInd);
@@ -367,4 +380,14 @@ const RawFileHeader*
 FileHeader::GetRaw() const
 {
     return &raw;
+}
+
+const RawFileIndirection *FileHeader::GetRawSingleIndirection() const{
+    return &singleIndirection;
+}
+const RawFileIndirection *FileHeader::GetRawDoubleIndirection() const{
+    return &doubleIndirection;
+}
+const RawFileIndirection *FileHeader::GetRawSingleIndirectioOfDouble(unsigned index) const {
+    return &doubleIndirectionArray[index];
 }

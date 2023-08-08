@@ -34,7 +34,7 @@ Timer* timer;                 ///< The hardware timer device, for invoking
 PreemptiveScheduler* preemptiveScheduler = nullptr;
 const long long DEFAULT_TIME_SLICE = 50000;
 
-// #define FILESYS_NEEDED 1 
+#define FILESYS_NEEDED 1 
 
 #ifdef FILESYS_NEEDED
 #include "filesys/file_system.hh"
@@ -272,6 +272,10 @@ Initialize(int argc, char** argv)
 
 #ifdef FILESYS_NEEDED
     fileSystem = new FileSystem(format);
+#endif
+
+#ifdef FILESYS
+    fileSystem->SetupThread();
 #endif
 
 #ifdef NETWORK
